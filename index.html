@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Mandala Engine – Classical / Ambient Blend</title>
+  <title>UCM Mandala Engine Lite</title>
 
-  <!-- Style -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Tone.js -->
+  <!-- Tone.js（必須） -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 
   <!-- Engine -->
@@ -17,41 +16,30 @@
 
 <body>
 
-  <!-- 🔵 背景：静止画＋ゆるフェード（超軽量） -->
-  <div id="background"></div>
+  <canvas id="mandalaCanvas"></canvas>
 
-  <!-- 🎚 コントロールパネル -->
   <div id="control-panel">
     <h1>UCM Mandala Engine</h1>
     <p id="status-text">Ready</p>
 
-    <!-- Style：クラシカル ⇄ アンビエント を連続ミックス -->
-    <div class="fader-block">
-      <label for="fader_style">Style（Classical ⇄ Ambient）</label>
-      <input type="range" id="fader_style" min="0" max="100" value="25" />
-    </div>
-
-    <!-- Energy：静⇄動（BPM／音の厚み） -->
     <div class="fader-block">
       <label for="fader_energy">Energy（静 ⇄ 動）</label>
       <input type="range" id="fader_energy" min="0" max="100" value="40" />
     </div>
 
-    <!-- Creation：生成の派手さ（音数・テンション） -->
     <div class="fader-block">
       <label for="fader_creation">Creation（生成の派手さ）</label>
       <input type="range" id="fader_creation" min="0" max="100" value="50" />
     </div>
 
-    <!-- Void：余白（休符／薄さ） -->
     <div class="fader-block">
       <label for="fader_void">Void（余白）</label>
       <input type="range" id="fader_void" min="0" max="100" value="20" />
     </div>
 
     <div id="info-row">
-      <span id="style-label">Style: Classical</span>
-      <span id="bpm-label">Tempo: 80 BPM</span>
+      <span id="mode-label">Mode: Ambient</span>
+      <span id="bpm-label">Tempo: 90 BPM</span>
     </div>
 
     <div id="buttons">

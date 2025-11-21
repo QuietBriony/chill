@@ -1,5 +1,6 @@
 /* ================================
    UCM Mandala Engine – UI / BG
+   Classical × Ambient 専用
 ================================ */
 
 body {
@@ -10,7 +11,7 @@ body {
   overflow: hidden;
 }
 
-/* 🔵 背景：静止画＋ゆるフェード（描画負荷ほぼゼロ） */
+/* 🔵 背景：静止画＋ゆるフェード（CPU負荷ほぼゼロ） */
 #background {
   position: fixed;
   inset: 0;
@@ -22,8 +23,8 @@ body {
 }
 
 @keyframes bgPulse {
-  0% { opacity: 0.55; }
-  50% { opacity: 0.8; }
+  0%   { opacity: 0.55; }
+  50%  { opacity: 0.80; }
   100% { opacity: 0.55; }
 }
 
@@ -72,7 +73,7 @@ body {
   width: 100%;
 }
 
-/* range 装飾（軽量版） */
+/* range 装飾（軽量） */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;

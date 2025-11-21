@@ -1,20 +1,21 @@
 // ============================================
-// UCM Piano Ambient — Fractal Edition
+// UCM Piano Ambient — Debussy / Ravel / Aphex-ish
+// 主旋律 + 伴奏 + パッド + 自然音 + オートモード
 // ============================================
 
 let isRunning = false;
 let audioReady = false;
 
-// UI refs（DOMContentLoaded後に代入）
+// UI refs
 let els = {};
 
 const State = {
-  style: 30,
-  energy: 25,
-  space: 60,
-  bright: 40,
-  volume: -16,
-  autoLenMin: 3,
+  style: 30,      // 0=Classical, 100=Ambient
+  energy: 25,     // 音数・テンポ
+  space: 60,      // 残響 / 余白
+  bright: 40,     // 明るさ
+  volume: -16,    // dB
+  autoLenMin: 3,  // 1〜5分
   autoEnabled: true,
 };
 
@@ -26,28 +27,29 @@ let phiPhase = 0;
 
 // Tone.js ノード
 let masterVol;
-let reverb;
-let piano, pad;
+let reverb, delay;
+let pianoLead, pianoComp, pad;
 let natureNoise, natureFilter, natureGain;
 
 // ループ
-let chordLoop, pianoLoop, companionLoop, natureLoop;
+let chordLoop, compLoop, leadLoop, arpLoop, natureLoop;
 let autoTimer = null;
 
 // スケール／コード
-const SCALE = ["C4","D4","E4","G4","A4","C5","D5","E5"];
+// Cリディアン寄り（F#含む）で少しドビュッシー風
+const SCALE = ["C4","D4","E4","F#4","G4","A4","B4","C5","D5","E5"];
 const CHORDS_CLASSICAL = [
   ["C4","E4","G4","B4"],   // Cmaj7
   ["A3","C4","E4","G4"],   // Am7
   ["F3","A3","C4","E4"],   // Fmaj7
-  ["G3","B3","D4","F4"],   // G7
+  ["D3","G3","C4","E4"],   // Gadd9/M7-ish
 ];
 
 const CHORDS_AMBIENT = [
-  ["C4","G4"],
-  ["D4","A4"],
-  ["E4","B4"],
-  ["G3","D4"],
+  ["C4","G4","D5"],
+  ["D4","A4","E5"],
+  ["E4","B4","F#5"],
+  ["G3","D4","A4"],
 ];
 
 // ------------------------------------
@@ -74,6 +76,13 @@ function nextPiDigit() {
   return d;
 }
 
+function styleName(mix) {
+  if (mix < 0.2) return "Classical";
+  if (mix < 0.5) return "Classical-ish";
+  if (mix < 0.8) return "Ambient-ish";
+  return "Ambient";
+}
+
 // ------------------------------------
 // Audio Graph Init
 // ------------------------------------
@@ -84,117 +93,142 @@ function initAudioGraph() {
   masterVol = new Tone.Volume(State.volume).toDestination();
 
   reverb = new Tone.Reverb({
-    decay: 10,
-    preDelay: 0.08,
-    wet: 0.5,
+    decay: 12,
+    preDelay: 0.1,
+    wet: 0.6,
   }).connect(masterVol);
 
-  // ピアノっぽいFM
-  piano = new Tone.PolySynth(Tone.FMSynth, {
-    volume: -10,
-    options: {
-      modulationIndex: 4,
-      harmonicity: 1.5,
-      envelope: { attack: 0.01, decay: 0.3, sustain: 0.3, release: 2.0 },
-      modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 1.0 },
-    }
+  delay = new Tone.FeedbackDelay("8n", 0.3).connect(reverb);
+
+  // ピアノ主旋律（少し柔らかめ）
+  pianoLead = new Tone.Synth({
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.01, decay: 0.25, sustain: 0.4, release: 2.5 },
+  }).connect(delay);
+
+  // ピアノ伴奏（和音）
+  pianoComp = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.02, decay: 0.4, sustain: 0.5, release: 3.5 },
   }).connect(reverb);
 
-  // パッド
+  // パッド（ストリングス風）
   pad = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "triangle" },
-    envelope: { attack: 1.5, decay: 1.0, sustain: 0.8, release: 6.0 },
+    envelope: { attack: 2.0, decay: 1.0, sustain: 0.85, release: 6.0 },
   }).connect(reverb);
 
-  // 自然音（かなり控えめ）
+  // 自然音（風・空調のようにかなり控えめ）
   natureNoise = new Tone.Noise("pink");
-  natureFilter = new Tone.Filter(2000, "lowpass");
-  natureGain = new Tone.Gain(0.03); // かなり小さく
+  natureFilter = new Tone.Filter(1800, "lowpass");
+  natureGain = new Tone.Gain(0.02); // かなり小さく
   natureNoise.connect(natureFilter).connect(natureGain).connect(reverb);
   natureNoise.start();
 
-  // ループ定義
   setupLoops();
 
   audioReady = true;
 }
 
 // ------------------------------------
-// Loops
+// Loops: コード / 伴奏 / 主旋律 / アルペジオ / 自然音
 // ------------------------------------
 
 function setupLoops() {
   let chordIdx = 0;
 
-  // 1) Chord Pad Loop（2小節ごと）
+  // 1) Pad & Piano block chords（2小節ごと）
   chordLoop = new Tone.Loop((time) => {
     const mix = State.style / 100; // 0=Classical, 1=Ambient
-    const padWeight = mapValue(State.space, 0, 100, 0.4, 1.0);
-
-    const useClassical = mix < 0.5;
+    const useClassical = mix < 0.6;
     const chordSet = useClassical ? CHORDS_CLASSICAL : CHORDS_AMBIENT;
 
-    const stepPi = nextPiDigit();
-    chordIdx = (chordIdx + (stepPi % chordSet.length)) % chordSet.length;
+    // πで次のコード選択（飛び方がフラクタル）
+    const step = nextPiDigit() % chordSet.length;
+    chordIdx = (chordIdx + step) % chordSet.length;
     const chord = chordSet[chordIdx];
 
-    const velPad = mapValue(State.energy, 0, 100, 0.35, 0.9) * padWeight;
-    pad.triggerAttackRelease(chord, "2m", time, velPad);
+    const padVel = mapValue(State.energy, 0, 100, 0.35, 0.9);
+    const compVel = mapValue(State.space, 0, 100, 0.5, 0.2);
 
-    // クラシカル寄りのときだけピアノでブロックコード
-    if (useClassical) {
-      const velPiano = mapValue(State.space, 0, 100, 0.5, 0.2);
-      piano.triggerAttackRelease(chord, "2n", time + 0.1, velPiano);
-    }
+    // Pad（背景のストリングス）
+    pad.triggerAttackRelease(chord, "2m", time, padVel);
+
+    // Piano block chord（少し遅れて入る）
+    pianoComp.triggerAttackRelease(chord, "2n", time + 0.15, compVel);
   }, "2m");
 
-  // 2) Piano Arp（π + φ によるフラクタル）
-  pianoLoop = new Tone.Loop((time) => {
+  // 2) Piano accompaniment（4分ごとに和音シンコペーション）
+  compLoop = new Tone.Loop((time) => {
     const mix = State.style / 100;
-    const restProb = mapValue(State.space, 0, 100, 0.15, 0.55);
+    if (mix > 0.8) return; // アンビエント寄りでは控えめ
 
-    if (rand(restProb)) return; // 余白
-
-    // Energy が低いときは密度を下げる
-    const density = mapValue(State.energy, 0, 100, 0.15, 0.7);
+    const density = mapValue(State.energy, 0, 100, 0.2, 0.85);
     if (!rand(density)) return;
 
-    // πと黄金比でノート選択
-    const d = nextPiDigit();           // πの桁
+    const chordSet = mix < 0.5 ? CHORDS_CLASSICAL : CHORDS_AMBIENT;
+    const c = chordSet[chordIdx];
+    if (!c) return;
+
+    const notes = c.slice(0, 3);
+    const vel = mapValue(State.space, 0, 100, 0.4, 0.2);
+    pianoComp.triggerAttackRelease(notes, "4n", time, vel);
+  }, "4n");
+
+  // 3) Piano Lead（主旋律）— π + 黄金比 でノート決定
+  leadLoop = new Tone.Loop((time) => {
+    const restProb = mapValue(State.space, 0, 100, 0.15, 0.5);
+    if (rand(restProb)) return;
+
+    const density = mapValue(State.energy, 0, 100, 0.3, 0.9);
+    if (!rand(density)) return;
+
+    const mix = State.style / 100;
+
+    const d = nextPiDigit();   // π 桁
     phiPhase += PHI;
-    const idx = Math.floor((d + phiPhase) % SCALE.length);
+    let idx = Math.floor((d + phiPhase) % SCALE.length);
+
+    // Aphex-ish: たまに Whole-tone 的に +2 ずらす
+    if (Math.random() < 0.15 && mix > 0.3) {
+      idx = (idx + 2) % SCALE.length;
+    }
+
     const note = SCALE[idx];
 
     const dur = rand(0.3) ? "8n" : "4n";
-    const vel = mapValue(State.bright, 0, 100, 0.2, 0.8);
+    const vel = mapValue(State.bright, 0, 100, 0.35, 0.85);
 
-    piano.triggerAttackRelease(note, dur, time, vel);
+    pianoLead.triggerAttackRelease(note, dur, time, vel);
   }, "8n");
 
-  // 3) Companion（先行する伴走ライン）
-  companionLoop = new Tone.Loop((time) => {
-    const mix = State.style / 100;
-    if (mix > 0.8) return; // Ambient寄りではほぼお休み
+  // 4) Arp（エネルギーが上がると細かく動く）
+  arpLoop = new Tone.Loop((time) => {
+    const energy = State.energy;
+    if (energy < 20) return; // 静のときはお休み
 
-    const ahead = mapValue(State.energy, 0, 100, 0.05, 0.2); // 少し先行
-    const d = nextPiDigit();
-    const idx = (d * 2) % SCALE.length;
-    const note = SCALE[idx];
+    const prob = mapValue(energy, 20, 100, 0.2, 0.9);
+    if (!rand(prob)) return;
 
-    const vel = mapValue(State.space, 0, 100, 0.1, 0.5);
-    piano.triggerAttackRelease(note, "8n", time - ahead, vel);
-  }, "4n");
+    const chordSet = CHORDS_CLASSICAL;
+    const c = chordSet[chordIdx];
+    if (!c) return;
 
-  // 4) Nature（風のような息）
+    const note = c[Math.floor(Math.random() * c.length)];
+    const vel = mapValue(State.bright, 0, 100, 0.2, 0.7);
+
+    pianoLead.triggerAttackRelease(note, "16n", time, vel);
+  }, "16n");
+
+  // 5) Nature（風のような息）
   natureLoop = new Tone.Loop((time) => {
     const mix = State.style / 100;
-    const base = mapValue(State.space, 0, 100, 0.01, 0.06);
+    const base = mapValue(State.space, 0, 100, 0.01, 0.05);
     const extra = mapValue(mix, 0, 1, 0.0, 0.03);
     const g = clamp(base + extra, 0.0, 0.08);
     natureGain.gain.rampTo(g, 2.0);
 
-    // フィルタもわずかに揺らす
-    const freq = mapValue(State.bright, 0, 100, 1500, 4000);
+    const freq = mapValue(State.bright, 0, 100, 1500, 3500);
     natureFilter.frequency.rampTo(freq, 5.0);
   }, "2m");
 }
@@ -213,36 +247,32 @@ function applyParams() {
 
   bpmBase += mapValue(State.energy, 0, 100, -6, +6);
   bpmBase = clamp(bpmBase, 50, 100);
+  Tone.Transport.bpm.rampTo(bpmBase, 0.4);
 
-  Tone.Transport.bpm.rampTo(bpmBase, 0.5);
-
-  // Reverb量
+  // Reverb & Delay
   if (reverb) {
-    const wet = mapValue(State.space, 0, 100, 0.3, 0.85);
+    const wet = mapValue(State.space, 0, 100, 0.35, 0.9);
     reverb.wet.rampTo(wet, 1.0);
   }
+  if (delay) {
+    const fb = mapValue(State.space, 0, 100, 0.15, 0.4);
+    delay.feedback.rampTo(fb, 0.6);
+  }
 
-  // マスター音量
+  // Brightness → EQ 的なものは synth 設定に軽く反映している想定
+  // Volume
   if (masterVol) {
     masterVol.volume.rampTo(State.volume, 0.4);
   }
 
   // UI
-  if (els.styleLabel) {
-    const name =
-      mix < 0.2 ? "Classical" :
-      mix < 0.5 ? "Classical-ish" :
-      mix < 0.8 ? "Ambient-ish" :
-                  "Ambient";
-    els.styleLabel.textContent = `Style: ${name}`;
-  }
-  if (els.bpmLabel) {
-    els.bpmLabel.textContent = `Tempo: ${Math.round(bpmBase)} BPM`;
-  }
+  const mixName = styleName(mix);
+  if (els.styleLabel) els.styleLabel.textContent = `Style: ${mixName}`;
+  if (els.bpmLabel) els.bpmLabel.textContent = `Tempo: ${Math.round(bpmBase)} BPM`;
 }
 
 // ------------------------------------
-// Auto モード（1〜5分のゆっくり変化）
+// Auto モード
 // ------------------------------------
 
 function scheduleAuto() {
@@ -253,12 +283,11 @@ function scheduleAuto() {
   const ms = mins * 60 * 1000;
 
   autoTimer = setTimeout(() => {
-    // Style / Energy / Space を少しだけランダムウォーク
-    State.style  = clamp(State.style  + (Math.random() - 0.5) * 20, 0, 100);
-    State.energy = clamp(State.energy + (Math.random() - 0.5) * 20, 0, 100);
-    State.space  = clamp(State.space  + (Math.random() - 0.5) * 20, 0, 100);
+    // ゆっくりランダムウォーク
+    State.style  = clamp(State.style  + (Math.random() - 0.5) * 18, 0, 100);
+    State.energy = clamp(State.energy + (Math.random() - 0.5) * 18, 0, 100);
+    State.space  = clamp(State.space  + (Math.random() - 0.5) * 18, 0, 100);
 
-    // UIにも反映
     els.fStyle.value  = State.style;
     els.fEnergy.value = State.energy;
     els.fSpace.value  = State.space;
@@ -296,7 +325,6 @@ function bindUI() {
     State.volume = parseInt(els.fVol.value, 10);
     State.autoLenMin = parseInt(els.fAuto.value, 10);
     State.autoEnabled = els.autoToggle.checked;
-
     applyParams();
   };
 
@@ -323,8 +351,9 @@ function bindUI() {
       scheduleAuto();
 
       chordLoop.start(0);
-      pianoLoop.start("4n");
-      companionLoop.start("2n");
+      compLoop.start("4n");
+      leadLoop.start("8n");
+      arpLoop.start("16n");
       natureLoop.start("1m");
       Tone.Transport.start("+0.1");
 
@@ -338,8 +367,9 @@ function bindUI() {
       if (!isRunning) return;
       Tone.Transport.stop();
       chordLoop.stop();
-      pianoLoop.stop();
-      companionLoop.stop();
+      compLoop.stop();
+      leadLoop.stop();
+      arpLoop.stop();
       natureLoop.stop();
       isRunning = false;
       if (els.status) els.status.textContent = "Stopped";
@@ -350,7 +380,7 @@ function bindUI() {
 }
 
 // ------------------------------------
-// 背景キャンバス：ゆるいフラクタル波
+// 背景キャンバス（そのままでもOK）
 // ------------------------------------
 
 function startCanvas() {
@@ -385,7 +415,7 @@ function startCanvas() {
 
     ctx.save();
     ctx.translate(w/2, h/2);
-    ctx.strokeStyle = "rgba(160,200,255,0.35)";
+    ctx.strokeStyle = "rgba(160,200,255,0.32)";
     ctx.lineWidth = 0.8;
 
     const rings = 4;
@@ -395,7 +425,7 @@ function startCanvas() {
       for (let i = 0; i <= 360; i += 5) {
         const rad = (i * Math.PI) / 180;
         const noise =
-          6 * Math.sin(rad * (3+r) + t* (1 + r*0.3)) *
+          5 * Math.sin(rad * (3+r) + t* (1 + r*0.3)) *
           Math.sin(t * (0.5 + r*0.2));
         const x = (radius + noise) * Math.cos(rad);
         const y = (radius + noise) * Math.sin(rad);
@@ -419,5 +449,5 @@ function startCanvas() {
 window.addEventListener("DOMContentLoaded", () => {
   bindUI();
   startCanvas();
-  console.log("UCM Piano Ambient — Fractal Edition Ready");
+  console.log("UCM Piano Ambient — Debussy/Ravel/Aphex-ish Ready");
 });

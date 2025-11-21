@@ -1,0 +1,152 @@
+/* ================================
+   UCM Mandala Engine – UI / BG
+================================ */
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+  background: #000;
+  color: #eef3ff;
+  overflow: hidden;
+}
+
+/* 🔵 背景：静止画＋ゆるフェード（描画負荷ほぼゼロ） */
+#background {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, #0b2440 0%, #040b16 55%, #02040a 100%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  animation: bgPulse 14s ease-in-out infinite;
+}
+
+@keyframes bgPulse {
+  0% { opacity: 0.55; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.55; }
+}
+
+/* 🎚 コントロールパネル */
+
+#control-panel {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  width: min(360px, 92vw);
+  background: rgba(4, 10, 24, 0.82);
+  border-radius: 14px;
+  border: 1px solid rgba(150, 190, 255, 0.5);
+  padding: 16px 18px 18px;
+  backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: 0 0 24px rgba(0, 120, 255, 0.22);
+  z-index: 5;
+}
+
+#control-panel h1 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+
+#status-text {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: #98a9cf;
+}
+
+/* Fader */
+
+.fader-block {
+  margin-bottom: 10px;
+}
+
+.fader-block label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #9fb3dd;
+}
+
+.fader-block input[type="range"] {
+  width: 100%;
+}
+
+/* range 装飾（軽量版） */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    rgba(80, 140, 255, 0.25),
+    rgba(150, 210, 255, 0.95));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 999px;
+  border: 2px solid rgba(140, 200, 255, 0.9);
+  background: #f7f9ff;
+  box-shadow: 0 0 10px rgba(140, 200, 255, 0.85);
+}
+
+#info-row {
+  margin: 4px 0 10px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9fb3dd;
+}
+
+/* Buttons */
+
+#buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#buttons button {
+  min-width: 88px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(150, 200, 255, 0.8);
+  background: rgba(10, 24, 50, 0.95);
+  color: #eef3ff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+#buttons button:first-child {
+  background: linear-gradient(
+    135deg,
+    rgba(130, 200, 255, 0.95),
+    rgba(90, 150, 255, 0.95)
+  );
+  color: #020712;
+}
+
+#buttons button:hover {
+  filter: brightness(1.08);
+}
+
+/* Responsive */
+
+@media (max-width: 520px) {
+  #control-panel {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 12px;
+    width: 92vw;
+  }
+}

@@ -3,23 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Mandala Engine Lite</title>
+  <title>UCM Mandala Engine Chill v1</title>
 
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Tone.js（必須） -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
-
-  <!-- Engine -->
   <script src="engine.js" defer></script>
 </head>
 
 <body>
-
   <canvas id="mandalaCanvas"></canvas>
 
   <div id="control-panel">
-    <h1>UCM Mandala Engine</h1>
+    <h1>Chill Engine</h1>
     <p id="status-text">Ready</p>
 
     <div class="fader-block">
@@ -28,7 +23,7 @@
     </div>
 
     <div class="fader-block">
-      <label for="fader_creation">Creation（生成の派手さ）</label>
+      <label for="fader_creation">Creation（派手さ）</label>
       <input type="range" id="fader_creation" min="0" max="100" value="50" />
     </div>
 
@@ -37,8 +32,13 @@
       <input type="range" id="fader_void" min="0" max="100" value="20" />
     </div>
 
+    <div class="fader-block">
+      <label for="fader_volume">Master Volume</label>
+      <input type="range" id="fader_volume" min="-48" max="0" value="-10" />
+    </div>
+
     <div id="info-row">
-      <span id="mode-label">Mode: Ambient</span>
+      <span id="mode-label">Mode: Chill</span>
       <span id="bpm-label">Tempo: 90 BPM</span>
     </div>
 

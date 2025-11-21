@@ -3,43 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Mandala Engine Chill v1</title>
+  <title>UCM Chill Engine — Ambient</title>
 
+  <!-- Style -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Tone.js -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+
+  <!-- Engine -->
   <script src="engine.js" defer></script>
 </head>
 
 <body>
+
   <canvas id="mandalaCanvas"></canvas>
 
   <div id="control-panel">
-    <h1>Chill Engine</h1>
+    <h1>UCM Chill Engine</h1>
     <p id="status-text">Ready</p>
 
     <div class="fader-block">
-      <label for="fader_energy">Energy（静 ⇄ 動）</label>
-      <input type="range" id="fader_energy" min="0" max="100" value="40" />
+      <label>Energy（静 ←→ 動）</label>
+      <input type="range" id="fader_energy" min="0" max="100" value="20" />
     </div>
 
     <div class="fader-block">
-      <label for="fader_creation">Creation（派手さ）</label>
-      <input type="range" id="fader_creation" min="0" max="100" value="50" />
+      <label>Brightness（明るさ）</label>
+      <input type="range" id="fader_bright" min="0" max="100" value="30" />
     </div>
 
     <div class="fader-block">
-      <label for="fader_void">Void（余白）</label>
-      <input type="range" id="fader_void" min="0" max="100" value="20" />
+      <label>Void（余白）</label>
+      <input type="range" id="fader_void" min="0" max="100" value="50" />
     </div>
 
     <div class="fader-block">
-      <label for="fader_volume">Master Volume</label>
-      <input type="range" id="fader_volume" min="-48" max="0" value="-10" />
+      <label>Volume</label>
+      <input type="range" id="fader_vol" min="-40" max="0" value="-18" />
     </div>
 
-    <div id="info-row">
-      <span id="mode-label">Mode: Chill</span>
-      <span id="bpm-label">Tempo: 90 BPM</span>
+    <div class="fader-block">
+      <label>Auto Mode（1〜5分）</label>
+      <input type="range" id="auto_len" min="1" max="5" value="2"/>
     </div>
 
     <div id="buttons">

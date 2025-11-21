@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Chill Engine — Ambient</title>
+  <title>UCM Piano Ambient — Fractal Edition</title>
 
   <!-- Style -->
   <link rel="stylesheet" href="style.css" />
@@ -17,35 +17,53 @@
 
 <body>
 
+  <!-- 背景キャンバス（ゆるいフラクタル波だけ描画） -->
   <canvas id="mandalaCanvas"></canvas>
 
+  <!-- コントロールパネル -->
   <div id="control-panel">
-    <h1>UCM Chill Engine</h1>
+    <h1>UCM Piano Ambient</h1>
     <p id="status-text">Ready</p>
 
     <div class="fader-block">
-      <label>Energy（静 ←→ 動）</label>
-      <input type="range" id="fader_energy" min="0" max="100" value="20" />
+      <label for="fader_style">Style（Classical ⇄ Ambient）</label>
+      <input type="range" id="fader_style" min="0" max="100" value="30" />
     </div>
 
     <div class="fader-block">
-      <label>Brightness（明るさ）</label>
-      <input type="range" id="fader_bright" min="0" max="100" value="30" />
+      <label for="fader_energy">Energy（静 ⇄ 動）</label>
+      <input type="range" id="fader_energy" min="0" max="100" value="25" />
     </div>
 
     <div class="fader-block">
-      <label>Void（余白）</label>
-      <input type="range" id="fader_void" min="0" max="100" value="50" />
+      <label for="fader_space">Space（余白 / 残響）</label>
+      <input type="range" id="fader_space" min="0" max="100" value="60" />
     </div>
 
     <div class="fader-block">
-      <label>Volume</label>
-      <input type="range" id="fader_vol" min="-40" max="0" value="-18" />
+      <label for="fader_bright">Brightness（明るさ）</label>
+      <input type="range" id="fader_bright" min="0" max="100" value="40" />
     </div>
 
     <div class="fader-block">
-      <label>Auto Mode（1〜5分）</label>
-      <input type="range" id="auto_len" min="1" max="5" value="2"/>
+      <label for="fader_volume">Master Volume</label>
+      <input type="range" id="fader_volume" min="-36" max="0" value="-16" />
+    </div>
+
+    <div class="fader-block inline">
+      <div>
+        <label for="auto_len">Auto（1〜5 min）</label>
+        <input type="range" id="auto_len" min="1" max="5" value="3" />
+      </div>
+      <div class="auto-toggle">
+        <label for="auto_toggle">AUTO</label>
+        <input type="checkbox" id="auto_toggle" checked />
+      </div>
+    </div>
+
+    <div id="info-row">
+      <span id="style-label">Style: Classical</span>
+      <span id="bpm-label">Tempo: 70 BPM</span>
     </div>
 
     <div id="buttons">

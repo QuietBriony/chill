@@ -1,84 +1,49 @@
 // ======================================================
-// UCM Mandala Engine – Style Blend
-// Ambient ⇄ Lo-Fi ⇄ Goa ⇄ HardTechno
+// UCM Mandala Engine – Classical / Ambient Style Blend
+// - Style: Classical ⇄ Ambient（連続ミックス）
+// - Energy: 静⇄動（BPM / 厚み）
+// - Creation: 生成の派手さ（音数 / テンション）
+// - Void: 余白（休符 / 薄さ）
+// - オート：Style にゆっくり揺らぎ（約 2 分周期）
 // ======================================================
 
 let isRunning = false;
-let audioStarted = false;
+let audioInitialized = false;
 
+// --------------------
 // 状態
+// --------------------
 const State = {
-  style: 25,    // 0–100: Ambient → Lo-Fi → Goa → Hard
+  style: 25,    // 0–100: Classical → Ambient
   energy: 40,   // 0–100: 静→動
   creation: 50, // 0–100: 派手さ
   voidAmt: 20,  // 0–100: 余白
 };
 
-// ======================================================
-// Audio Graph (Tone.js)
-// ======================================================
+// 内部パラメータ
+const EngineParams = {
+  styleMix: 0.25,  // 0=Classical, 1=Ambient（オート揺らぎ込み）
+  restProb: 0.2,
+  padDensity: 0.7,
+};
 
+// Tone.js 共通ノード
 const masterGain = new Tone.Gain(0.9).toDestination();
-
-const drumDist = new Tone.Distortion({
-  distortion: 0.0,
-  oversample: "4x",
-}).connect(masterGain);
-drumDist.wet.value = 0.0;
-
-const drumBus = new Tone.Gain(1).connect(drumDist);
-
 const reverb = new Tone.Reverb({
   decay: 4,
   preDelay: 0.03,
-  wet: 0.3,
+  wet: 0.35,
 }).connect(masterGain);
-
 const delay = new Tone.FeedbackDelay("8n", 0.25).connect(masterGain);
 
-const padSynth = new Tone.PolySynth(Tone.Synth, {
-  oscillator: { type: "triangle" },
-  envelope: { attack: 0.4, decay: 0.8, sustain: 0.7, release: 3.0 },
-}).connect(reverb);
+// 楽器
+let classicalPad, ambientPad, pianoSynth, fluteSynth, noiseSynth, subSynth;
+// LFO
+let classicalDriftLFO, ambientDriftLFO, reverbBreathLFO;
 
-const bassSynth = new Tone.MonoSynth({
-  oscillator: { type: "sawtooth" },
-  filter: { type: "lowpass", Q: 1.2 },
-  filterEnvelope: {
-    attack: 0.01,
-    decay: 0.3,
-    sustain: 0.2,
-    release: 0.4,
-    baseFrequency: 60,
-    octaves: 3,
-  },
-  envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.5 },
-}).connect(masterGain);
-
-const kickSynth = new Tone.MembraneSynth({
-  pitchDecay: 0.02,
-  octaves: 4,
-  oscillator: { type: "sine" },
-  envelope: { attack: 0.001, decay: 0.4, sustain: 0.0, release: 0.2 },
-}).connect(drumBus);
-
-const hatNoise = new Tone.NoiseSynth({
-  noise: { type: "white" },
-  envelope: { attack: 0.001, decay: 0.06, sustain: 0 },
-}).connect(drumBus);
-
-// 808 / 909 サンプル（存在しなくても落ちないよう safePlay）
-const drumSamples = new Tone.Players(
-  {
-    kick808: "samples/kick_808.wav",
-    snare808: "samples/snare_808.wav",
-    hat808: "samples/hihat_808.wav",
-    kick909: "samples/kick_909.wav",
-    snare909: "samples/snare_909.wav",
-    hat909: "samples/hihat_909.wav",
-  },
-  () => console.log("Drum sample players ready (if files exist).")
-).connect(drumBus).toDestination();
+// ループ
+let padLoop = null;
+let textureLoop = null;
 
 // ======================================================
 // Helper
@@ -90,270 +55,236 @@ function mapValue(x, inMin, inMax, outMin, outMax) {
   return outMin + t * (outMax - outMin);
 }
 
-function rand(prob) {
-  return Math.random() < prob;
-}
-
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-function safePlay(name, time) {
-  try {
-    const p = drumSamples.player(name);
-    if (p) p.start(time);
-  } catch (e) {
-    // ローカルにサンプルが無い場合も落ちないようにする
-  }
+function clamp(v, min, max) {
+  return v < min ? min : v > max ? max : v;
+}
+
+function rand(prob) {
+  return Math.random() < prob;
+}
+
+function styleNameFromMix(mix) {
+  if (mix < 0.2) return "Classical";
+  if (mix < 0.5) return "Classical-ish";
+  if (mix < 0.8) return "Ambient-ish";
+  return "Ambient";
 }
 
 // ======================================================
-// Style Archetype（4点）
+// Audio 初期化
 // ======================================================
-// 各要素は 0〜1 の確率で 16ステップ分定義
 
-const ARCH = [
-  {
-    name: "Ambient",
-    bpm: 86,
-    swing: 0.0,
-    dist: 0.0,
-    kick808: 0.1,
-    kick909: 0.0,
-    pKick:  [1,0,0,0,  0,0,0,0,  1,0,0,0,  0,0,0,0],
-    pSnare:[0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0],
-    pHat:  [0,0.2,0,0.1,  0,0.2,0,0.1,  0,0.2,0,0.1,  0,0.2,0,0.1],
-    pBass: [0.6,0,0,0,  0,0,0,0,  0.5,0,0,0,  0,0,0,0],
-  },
-  {
-    name: "Lo-Fi",
-    bpm: 80,
-    swing: 0.3,
-    dist: 0.05,
-    kick808: 0.9,
-    kick909: 0.1,
-    pKick:  [1,0,0,0,  0,0,1,0,  0,0,1,0,  0,1,0,0],
-    pSnare:[0,0,0,0.8, 0,0,0,0,  0,0,0,0.8, 0,0,0,0],
-    pHat:  [0.9,0,0.5,0, 0.8,0,0.5,0, 0.9,0,0.5,0, 0.8,0,0.5,0],
-    pBass: [0.8,0,0,0,  0,0,0.6,0,  0.7,0,0,0,  0,0.6,0,0],
-  },
-  {
-    name: "Goa",
-    bpm: 148,
-    swing: 0.02,
-    dist: 0.4,
-    kick808: 0.2,
-    kick909: 0.8,
-    pKick:  [1,0,1,0,  1,0,1,0,  1,0,1,0,  1,0,1,0], // 16分4つ打ち寄り
-    pSnare:[0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0],
-    pHat:  [1,0,1,0,  1,0,1,0,  1,0,1,0,  1,0,1,0],
-    pBass: [0.8,0,0.6,0,  0.8,0,0.6,0,  0.8,0,0.6,0,  0.8,0,0.6,0],
-  },
-  {
-    name: "HardTechno",
-    bpm: 165,
-    swing: 0.0,
-    dist: 0.85,
-    kick808: 0.0,
-    kick909: 1.0,
-    pKick:  [1,0,1,0,  1,0,1,0,  1,0,1,0,  1,0,1,0],
-    pSnare:[0,0,0,0.7, 0,0,0,0,  0,0,0,0.7, 0,0,0,0],
-    pHat:  [1,0.8,1,0.8,  1,0.8,1,0.8,  1,0.8,1,0.8,  1,0.8,1,0.8],
-    pBass: [0.9,0,0.8,0,  0.9,0,0.8,0,  0.9,0,0.8,0,  0.9,0,0.8,0],
-  },
-];
+function initAudioGraph() {
+  if (audioInitialized) return;
 
-// Blended params
-const EngineParams = {
-  bpm: 86,
-  swing: 0,
-  restProb: 0.2,
-  kick808Mix: 0,
-  kick909Mix: 0,
-  pKick:  new Array(16).fill(0),
-  pSnare: new Array(16).fill(0),
-  pHat:   new Array(16).fill(0),
-  pBass:  new Array(16).fill(0),
-};
+  // クラシカル系パッド（ストリングスっぽい）
+  classicalPad = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.6, decay: 0.8, sustain: 0.7, release: 3.5 },
+  }).connect(reverb);
+
+  // アンビエント系パッド（柔らか）
+  ambientPad = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "sine" },
+    envelope: { attack: 1.2, decay: 1.0, sustain: 0.8, release: 4.0 },
+  }).connect(reverb);
+
+  // ピアノ的アタック（クラシカル側）
+  pianoSynth = new Tone.FMSynth({
+    modulationIndex: 4,
+    harmonicity: 1.5,
+    envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.8 },
+  }).connect(reverb);
+
+  // フルート的（上モノ）
+  fluteSynth = new Tone.Synth({
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.1, decay: 0.4, sustain: 0.6, release: 1.8 },
+  }).connect(reverb);
+
+  // アンビエントノイズ（風・空調系）
+  noiseSynth = new Tone.NoiseSynth({
+    noise: { type: "pink" },
+    envelope: { attack: 1.0, decay: 2.5, sustain: 0.0, release: 3.0 },
+  }).connect(reverb);
+
+  // サブベース（ゆるい底）
+  subSynth = new Tone.MonoSynth({
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.4, decay: 1.0, sustain: 0.7, release: 2.0 },
+    filter: { type: "lowpass", frequency: 120, Q: 1 },
+  }).connect(masterGain);
+
+  // 倍音揺らぎ LFO（detune）
+  classicalDriftLFO = new Tone.LFO({
+    frequency: 0.03, // ~30秒周期
+    min: -8,
+    max: 8,
+  });
+  classicalDriftLFO.connect(classicalPad.detune);
+  classicalDriftLFO.start();
+
+  ambientDriftLFO = new Tone.LFO({
+    frequency: 0.02, // ~50秒周期
+    min: -5,
+    max: 5,
+  });
+  ambientDriftLFO.connect(ambientPad.detune);
+  ambientDriftLFO.start();
+
+  // リバーブの“呼吸”
+  reverbBreathLFO = new Tone.LFO({
+    frequency: 0.01, // ~100秒周期
+    min: 0.25,
+    max: 0.55,
+  });
+  reverbBreathLFO.connect(reverb.wet);
+  reverbBreathLFO.start();
+
+  // パッドループ（2小節ごと）
+  padLoop = new Tone.Loop(onPadLoop, "2m");
+
+  // テクスチャループ（8分音符刻み）
+  textureLoop = new Tone.Loop(onTextureLoop, "8n");
+
+  audioInitialized = true;
+}
 
 // ======================================================
-// Style blending
+// スタイルミックス計算（クラシカル⇄アンビエント）
 // ======================================================
 
 function computeStyleBlend() {
-  const s = State.style / 100; // 0–1
-  const seg = 1 / 3;
+  const now = Tone.now();
 
-  let iA, iB, t;
-  if (s <= seg) {
-    iA = 0; iB = 1;
-    t = s / seg;
-  } else if (s <= 2 * seg) {
-    iA = 1; iB = 2;
-    t = (s - seg) / seg;
+  // ユーザーの Style フェーダー
+  const baseMix = State.style / 100; // 0–1
+  // オート揺らぎ（約 120 秒周期で ±0.15）
+  const wobble = 0.15 * Math.sin(now * (2 * Math.PI / 120));
+  const mix = clamp(baseMix + wobble, 0, 1);
+
+  EngineParams.styleMix = mix;
+
+  // Void → 休符率
+  EngineParams.restProb = mapValue(State.voidAmt, 0, 100, 0.05, 0.6);
+
+  // Creation → パッド出現頻度
+  EngineParams.padDensity = mapValue(State.creation, 0, 100, 0.4, 0.9);
+
+  // BPM：クラシカル寄りでゆっくり、アンビエント寄りで少しだけ速く
+  let bpmBase;
+  if (mix < 0.5) {
+    const t = mix / 0.5;
+    bpmBase = lerp(70, 80, t);
   } else {
-    iA = 2; iB = 3;
-    t = (s - 2 * seg) / seg;
+    const t = (mix - 0.5) / 0.5;
+    bpmBase = lerp(80, 96, t);
   }
+  // Energy で微調整
+  let bpm = bpmBase + mapValue(State.energy, 0, 100, -6, 8);
+  bpm = clamp(bpm, 50, 110);
 
-  const A = ARCH[iA];
-  const B = ARCH[iB];
+  Tone.Transport.bpm.rampTo(bpm, 0.4);
 
-  EngineParams.bpm = lerp(A.bpm, B.bpm, t);
-  EngineParams.swing = lerp(A.swing, B.swing, t);
-
-  const voidRest = mapValue(State.voidAmt, 0, 100, 0.05, 0.55);
-  EngineParams.restProb = voidRest;
-
-  EngineParams.kick808Mix = lerp(A.kick808, B.kick808, t);
-  EngineParams.kick909Mix = lerp(A.kick909, B.kick909, t);
-
-  for (let i = 0; i < 16; i++) {
-    EngineParams.pKick[i]  = lerp(A.pKick[i],  B.pKick[i],  t);
-    EngineParams.pSnare[i] = lerp(A.pSnare[i], B.pSnare[i], t);
-    EngineParams.pHat[i]   = lerp(A.pHat[i],   B.pHat[i],   t);
-    EngineParams.pBass[i]  = lerp(A.pBass[i],  B.pBass[i],  t);
-  }
-
-  // Distortion / Reverb など
-  const baseDist = lerp(A.dist, B.dist, t);
-  const energyBoost = mapValue(State.energy, 0, 100, 0, 0.2);
-  const distVal = Math.min(1, baseDist + energyBoost);
-  drumDist.distortion = distVal;
-  drumDist.wet.rampTo(distVal > 0.05 ? 0.9 : 0.1, 0.4);
-
-  // Creation → reverb wet
-  const padWet = mapValue(State.creation, 0, 100, 0.2, 0.75);
-  reverb.wet.rampTo(padWet, 0.5);
-
-  // Swing
-  Tone.Transport.swing = EngineParams.swing;
-  Tone.Transport.swingSubdivision = "8n";
-
-  // BPM に Energy を微調整反映
-  let bpmFinal = EngineParams.bpm + mapValue(State.energy, 0, 100, -5, +8);
-  bpmFinal = Math.max(50, Math.min(185, bpmFinal));
-  Tone.Transport.bpm.rampTo(bpmFinal, 0.3);
-  EngineParams.bpm = bpmFinal;
-
-  // UI表示
+  // UI 更新
   const styleLabel = document.getElementById("style-label");
-  const bpmLabel   = document.getElementById("bpm-label");
-  if (styleLabel) styleLabel.textContent = "Style: " + styleNameFromS(s);
-  if (bpmLabel)   bpmLabel.textContent   = `Tempo: ${Math.round(bpmFinal)} BPM`;
-}
-
-function styleNameFromS(s) {
-  if (s < 0.2) return "Ambient";
-  if (s < 0.5) return "Lo-Fi";
-  if (s < 0.8) return "Goa-ish";
-  return "HardTechno-ish";
+  const bpmLabel = document.getElementById("bpm-label");
+  if (styleLabel) styleLabel.textContent = "Style: " + styleNameFromMix(mix);
+  if (bpmLabel) bpmLabel.textContent = `Tempo: ${Math.round(bpm)} BPM`;
 }
 
 // ======================================================
-// Sequencer
+// ループ：パッド（和音）
 // ======================================================
 
-let stepIndex = 0;
+const CLASSICAL_CHORDS = [
+  ["D4", "G4", "B4", "E5"],   // Gmaj9系
+  ["C4", "E4", "G4", "B4"],   // Cmaj7
+  ["F3", "A3", "C4", "E4"],   // Fmaj7
+  ["E3", "G4", "B4", "D5"],   // Em9
+];
 
-const beatLoop = new Tone.Loop((time) => {
-  const step = stepIndex % 16;
+const AMBIENT_CHORDS = [
+  ["C4", "G4"],
+  ["D4", "A4"],
+  ["E4", "B4"],
+  ["G3", "D4"],
+];
 
-  if (!rand(EngineParams.restProb)) {
-    // Kick
-    if (rand(EngineParams.pKick[step])) {
-      triggerKick(time);
-    }
-    // Snare
-    if (rand(EngineParams.pSnare[step])) {
-      triggerSnare(time);
-    }
-    // Hat
-    if (rand(EngineParams.pHat[step])) {
-      triggerHat(time);
-    }
-    // Bass
-    if (rand(EngineParams.pBass[step])) {
-      triggerBass(time);
-    }
+function onPadLoop(time) {
+  const mix = EngineParams.styleMix;
+  const classicalLevel = 1 - mix;
+  const ambientLevel = mix;
+
+  // Void → 休符
+  if (rand(EngineParams.restProb)) return;
+
+  // Creation → 出るかどうか
+  if (!rand(EngineParams.padDensity)) return;
+
+  // クラシカル側パッド
+  if (classicalLevel > 0.05) {
+    const idx = Math.floor(Math.random() * CLASSICAL_CHORDS.length);
+    const chord = CLASSICAL_CHORDS[idx];
+    const vel = classicalLevel * mapValue(State.creation, 0, 100, 0.4, 1.0);
+    classicalPad.triggerAttackRelease(chord, "2m", time, vel);
   }
 
-  stepIndex++;
-}, "16n");
+  // アンビエント側パッド
+  if (ambientLevel > 0.05) {
+    const idx = Math.floor(Math.random() * AMBIENT_CHORDS.length);
+    const chord = AMBIENT_CHORDS[idx];
+    const vel = ambientLevel * mapValue(100 - State.voidAmt, 0, 100, 0.3, 1.0);
+    ambientPad.triggerAttackRelease(chord, "2m", time, vel);
+  }
+}
 
-// 2小節ごとにコード（シンプルにAmbient/Lo-Fi寄りだけ）
-const chordsAmbient = [
-  ["C4","E4","G4"],
-  ["A3","D4","G4"],
-];
-const chordsLofi = [
-  ["F3","A3","C4","E4"],
-  ["D3","G3","C4","E4"],
-];
+// ======================================================
+// ループ：テクスチャ（ピアノ／フルート／ノイズ／サブ）
+// ======================================================
 
-const chordLoop = new Tone.Loop((time) => {
+const PIANO_SCALE = ["A3", "C4", "D4", "E4", "G4", "A4", "C5"];
+const FLUTE_SCALE = ["E5", "G5", "A5", "C6"];
+
+function onTextureLoop(time) {
+  const mix = EngineParams.styleMix;
+  const classicalLevel = 1 - mix;
+  const ambientLevel = mix;
+
+  // Void 強い → かなり休む
   if (rand(EngineParams.restProb + 0.1)) return;
 
-  // Style 0〜0.5 → Ambient/Lo-Fi、0.5〜 → 簡易的な2和音
-  const s = State.style / 100;
-  let chord;
-  if (s < 0.5) {
-    const pool = chordsAmbient.concat(chordsLofi);
-    chord = pool[Math.floor(Math.random() * pool.length)];
-  } else {
-    chord = s < 0.8 ? ["C4","G4"] : ["G3","D4"];
+  const baseProb = mapValue(State.creation, 0, 100, 0.05, 0.35);
+  const pClass = baseProb * classicalLevel;
+  const pAmb = baseProb * ambientLevel;
+
+  // クラシカル側：ピアノ or フルート
+  if (rand(pClass)) {
+    if (Math.random() < 0.7) {
+      const note = PIANO_SCALE[Math.floor(Math.random() * PIANO_SCALE.length)];
+      pianoSynth.triggerAttackRelease(note, "8n", time, 0.5 + 0.4 * Math.random());
+    } else {
+      const note = FLUTE_SCALE[Math.floor(Math.random() * FLUTE_SCALE.length)];
+      fluteSynth.triggerAttackRelease(note, "4n", time, 0.4 + 0.3 * Math.random());
+    }
   }
 
-  const dur = s < 0.5 ? "2m" : "1m";
-  padSynth.triggerAttackRelease(chord, dur, time);
-}, "2m");
-
-// ------------------------------------------------------
-// Trigger functions
-// ------------------------------------------------------
-
-function triggerKick(time) {
-  const s = State.style / 100;
-  const pitch = s > 0.66 ? "C1" : "C2";
-  kickSynth.triggerAttackRelease(pitch, "8n", time);
-
-  const total = EngineParams.kick808Mix + EngineParams.kick909Mix + 1e-6;
-  const p808 = EngineParams.kick808Mix / total;
-  const p909 = EngineParams.kick909Mix / total;
-
-  if (rand(p808)) safePlay("kick808", time);
-  if (rand(p909)) safePlay("kick909", time);
-}
-
-function triggerSnare(time) {
-  const total = EngineParams.kick808Mix + EngineParams.kick909Mix + 1e-6;
-  const p808 = EngineParams.kick808Mix / total;
-  const p909 = EngineParams.kick909Mix / total;
-
-  if (rand(p808)) safePlay("snare808", time);
-  if (rand(p909)) safePlay("snare909", time);
-  else hatNoise.triggerAttackRelease("16n", time + 0.01);
-}
-
-function triggerHat(time) {
-  const total = EngineParams.kick808Mix + EngineParams.kick909Mix + 1e-6;
-  const p808 = EngineParams.kick808Mix / total;
-  const p909 = EngineParams.kick909Mix / total;
-
-  if (rand(p808)) safePlay("hat808", time);
-  if (rand(p909)) safePlay("hat909", time);
-  else hatNoise.triggerAttackRelease("16n", time);
-}
-
-function triggerBass(time) {
-  const s = State.style / 100;
-  let root = "C2";
-  if (s < 0.25) root = "F1";
-  else if (s < 0.5) root = "A1";
-  else if (s < 0.75) root = "C2";
-  else root = "G1";
-
-  bassSynth.triggerAttackRelease(root, "8n", time);
+  // アンビエント側：ノイズ or サブ
+  if (rand(pAmb)) {
+    if (Math.random() < 0.6) {
+      // ノイズゆらぎ
+      noiseSynth.triggerAttackRelease("2n", time);
+    } else {
+      // サブベース、Key: C / A あたり
+      const roots = ["C1", "A1"];
+      const root = roots[Math.floor(Math.random() * roots.length)];
+      subSynth.triggerAttackRelease(root, "1n", time, 0.4);
+    }
+  }
 }
 
 // ======================================================
@@ -361,49 +292,52 @@ function triggerBass(time) {
 // ======================================================
 
 function updateFromUI() {
-  const style = document.getElementById("fader_style");
-  const energy = document.getElementById("fader_energy");
-  const creation = document.getElementById("fader_creation");
-  const voidS = document.getElementById("fader_void");
+  const sStyle = document.getElementById("fader_style");
+  const sEnergy = document.getElementById("fader_energy");
+  const sCreation = document.getElementById("fader_creation");
+  const sVoid = document.getElementById("fader_void");
 
-  if (style)   State.style    = parseInt(style.value, 10);
-  if (energy)  State.energy   = parseInt(energy.value, 10);
-  if (creation)State.creation = parseInt(creation.value, 10);
-  if (voidS)   State.voidAmt  = parseInt(voidS.value, 10);
+  if (sStyle) State.style = parseInt(sStyle.value, 10) || 0;
+  if (sEnergy) State.energy = parseInt(sEnergy.value, 10) || 0;
+  if (sCreation) State.creation = parseInt(sCreation.value, 10) || 0;
+  if (sVoid) State.voidAmt = parseInt(sVoid.value, 10) || 0;
 
   computeStyleBlend();
 }
 
 function attachUI() {
-  const style = document.getElementById("fader_style");
-  const energy = document.getElementById("fader_energy");
-  const creation = document.getElementById("fader_creation");
-  const voidS = document.getElementById("fader_void");
+  const sStyle = document.getElementById("fader_style");
+  const sEnergy = document.getElementById("fader_energy");
+  const sCreation = document.getElementById("fader_creation");
+  const sVoid = document.getElementById("fader_void");
   const btnStart = document.getElementById("btn_start");
   const btnStop = document.getElementById("btn_stop");
   const status = document.getElementById("status-text");
 
   const onChange = () => updateFromUI();
 
-  if (style)   style.addEventListener("input", onChange);
-  if (energy)  energy.addEventListener("input", onChange);
-  if (creation)creation.addEventListener("input", onChange);
-  if (voidS)   voidS.addEventListener("input", onChange);
+  if (sStyle) sStyle.addEventListener("input", onChange);
+  if (sEnergy) sEnergy.addEventListener("input", onChange);
+  if (sCreation) sCreation.addEventListener("input", onChange);
+  if (sVoid) sVoid.addEventListener("input", onChange);
 
   if (btnStart) {
     btnStart.onclick = async () => {
-      if (!audioStarted) {
-        await Tone.start();
-        audioStarted = true;
+      if (isRunning) return;
+
+      if (!audioInitialized) {
+        initAudioGraph();
       }
-      if (!isRunning) {
-        updateFromUI();
-        beatLoop.start(0);
-        chordLoop.start("1m");
-        Tone.Transport.start();
-        isRunning = true;
-        if (status) status.textContent = "Playing…";
-      }
+      await Tone.start();
+
+      updateFromUI(); // 初期パラメータ反映
+
+      padLoop.start(0);
+      textureLoop.start("4n");
+      Tone.Transport.start();
+
+      isRunning = true;
+      if (status) status.textContent = "Playing…";
     };
   }
 
@@ -411,6 +345,8 @@ function attachUI() {
     btnStop.onclick = () => {
       if (!isRunning) return;
       Tone.Transport.stop();
+      padLoop.stop();
+      textureLoop.stop();
       isRunning = false;
       if (status) status.textContent = "Stopped";
     };
@@ -424,5 +360,5 @@ function attachUI() {
 window.addEventListener("DOMContentLoaded", () => {
   attachUI();
   updateFromUI();
-  console.log("UCM Mandala Engine – Style Blend Ready");
+  console.log("UCM Mandala Engine – Classical / Ambient Blend Ready");
 });

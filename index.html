@@ -3,40 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Ambient Piano — Zen / RAVE</title>
+  <title>Chill Piano Ambient — Zen / Acid</title>
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Tone.js（音生成エンジン） -->
+  <!-- Tone.js（必ず先に読み込む） -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 
-  <!-- Engine -->
+  <!-- エンジン本体 -->
   <script src="engine.js" defer></script>
 </head>
 
 <body>
 
-  <!-- 背景（最軽量 Canvas） -->
+  <!-- 背景マンダラ（軽量） -->
   <canvas id="bg"></canvas>
 
   <!-- メインコントロール -->
   <div id="panel">
-    <h1>UCM Ambient Piano</h1>
+    <h1>Chill Piano Ambient</h1>
     <p id="modeLabel">Mode: Ambient</p>
     <p id="bpmLabel">BPM: --</p>
 
     <div class="fader">
-      <label>Energy（静〜動）</label>
+      <label for="fader_energy">Energy（静 ⇄ 動）</label>
       <input type="range" id="fader_energy" min="0" max="100" value="25" />
     </div>
 
     <div class="fader">
-      <label>Creation（生成）</label>
-      <input type="range" id="fader_creation" min="0" max="100" value="30" />
+      <label for="fader_creation">Creation（生成の派手さ）</label>
+      <input type="range" id="fader_creation" min="0" max="100" value="35" />
     </div>
 
     <div class="fader">
-      <label>Nature（自然）</label>
+      <label for="fader_nature">Nature（自然度）</label>
       <input type="range" id="fader_nature" min="0" max="100" value="15" />
     </div>
 
@@ -47,9 +47,9 @@
     </div>
   </div>
 
-  <!-- RAVEボタン（フッター遠くに隔離） -->
-  <div id="rave-panel">
-    <button id="btn_rave">RAVE</button>
+  <!-- Acid ボタンは画面左下に離す -->
+  <div id="acid-panel">
+    <button id="btn_acid">ACID</button>
   </div>
 
 </body>

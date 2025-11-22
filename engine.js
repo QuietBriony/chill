@@ -1,4 +1,11 @@
 //------------------------------------------------------
+//  グローバル状態（UI値を先に宣言）
+//------------------------------------------------------
+let energyVal   = 0.6;
+let creationVal = 0.5;
+let natureVal   = 0.4;
+
+//------------------------------------------------------
 //  Canvas 初期化（FPS制限）
 //------------------------------------------------------
 const canvas = document.getElementById("bg");
@@ -46,7 +53,7 @@ draw(0);
 Tone.Transport.bpm.value = 82;
 Tone.Transport.swing = 0.12;
 
-// Gain ノードで全体音量バランス安定化
+// 全体ゲイン
 const master = new Tone.Gain(0.9).toDestination();
 
 // Piano
@@ -56,7 +63,7 @@ const piano = new Tone.Sampler({
   release:2.0
 }).connect(master);
 
-// Pad（軽量化 Aftertouch）
+// Pad
 const padFilter = new Tone.Filter(900, "lowpass");
 const padVerb   = new Tone.Reverb(3);
 padVerb.wet.value = 0.4;
@@ -89,7 +96,7 @@ const hat = new Tone.NoiseSynth({
 let acidOn = false;
 
 //------------------------------------------------------
-//  Loops
+//  Loops（メロ・左手・Pad・Acid）
 //------------------------------------------------------
 const scale = ["C4","D4","E4","G4","A4","C5","D5","E5","G5"];
 
@@ -141,17 +148,15 @@ const acidLoop = new Tone.Loop(time=>{
 }, "1n");
 
 //------------------------------------------------------
-//  Auto Drift（安定化）
+//  Auto Drift（BPM & フェーダー）
 //------------------------------------------------------
 let autoOn = false;
 function autoTick() {
   if (!autoOn) return;
 
-  // BPMは ±2まで縮小（揺れすぎ防止）
   const next = 82 + (Math.random()*4 - 2) * natureVal;
   Tone.Transport.bpm.rampTo(next, 6);
 
-  // Vals drift
   creationVal = Math.min(1,Math.max(0,creationVal+(Math.random()*0.07-0.035)));
   natureVal   = Math.min(1,Math.max(0,natureVal+(Math.random()*0.07-0.035)));
 
@@ -162,34 +167,62 @@ function autoTick() {
 }
 
 //------------------------------------------------------
-//  UI EVENTS（デバウンス付き）
+//  UI EVENTS（iOS Touch Unlock 対応）
 //------------------------------------------------------
 let busy = false;
+let started = false;
 
-document.getElementById("startBtn").onclick = async ()=>{
-  if (busy) return; busy=true; setTimeout(()=>busy=false,200);
+const startBtn  = document.getElementById("startBtn");
+const stopBtn   = document.getElementById("stopBtn");
+const acidBtn   = document.getElementById("acidBtn");
+const autoBtn   = document.getElementById("autoBtn");
 
-  await Tone.start();
-  Tone.Transport.start();
+startBtn.onclick = async () => {
+  if (busy) return;
+  busy = true; setTimeout(()=>busy=false, 250);
 
-  melodyLoop.start(0);
-  leftLoop.start(0);
-  padLoop.start(0);
-  acidLoop.start(0);
+  try {
+    // 1) iOS Safari の WebAudio 解禁
+    await Tone.start();
+
+    // 念のため context を running に
+    if (Tone.getContext().state !== "running") {
+      await Tone.getContext().resume();
+    }
+
+    // 2) すでに再生中なら何もしない（多重スタート防止）
+    if (!started) {
+      Tone.Transport.start("+0.05");
+
+      melodyLoop.start(0);
+      leftLoop.start(0);
+      padLoop.start(0);
+      acidLoop.start(0);
+
+      started = true;
+    }
+
+    startBtn.textContent = "▶ PLAYING";
+  } catch (e) {
+    console.warn(e);
+    alert("iPhone がオーディオをブロックしました。\n一度画面をタップしてから、もう一度 START を押してください。");
+  }
 };
 
-document.getElementById("stopBtn").onclick = ()=>{
+stopBtn.onclick = () => {
   Tone.Transport.stop();
 };
 
-document.getElementById("acidBtn").onclick = ()=>{ acidOn = !acidOn; };
+acidBtn.onclick = () => {
+  acidOn = !acidOn;
+};
 
-document.getElementById("autoBtn").onclick = ()=>{
+autoBtn.onclick = () => {
   autoOn = !autoOn;
   if (autoOn) autoTick();
 };
 
 // Sliders
-document.getElementById("energy").oninput=e=>energyVal=parseFloat(e.target.value);
-document.getElementById("creation").oninput=e=>creationVal=parseFloat(e.target.value);
-document.getElementById("nature").oninput=e=>natureVal=parseFloat(e.target.value);
+document.getElementById("energy").oninput   = e=>energyVal   = parseFloat(e.target.value);
+document.getElementById("creation").oninput = e=>creationVal = parseFloat(e.target.value);
+document.getElementById("nature").oninput   = e=>natureVal   = parseFloat(e.target.value);

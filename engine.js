@@ -67,28 +67,80 @@ const reverb = new Tone.Reverb({
   wet: 0.35
 }).connect(master);
 
-//--------------------------------------
-// Ambient Piano / Pad
-//--------------------------------------
+//------------------------------------------------
+//  Ambient Piano — 主旋律 + 伴走 + 和声（厚み版）
+//------------------------------------------------
 
-// ピアノ（FM＋柔らかアタック）
-const piano = new Tone.FMSynth({
-  harmonicity: 1.5,
-  modulationIndex: 2,
-  oscillator: { type: "triangle" },
-  envelope: { attack: 0.02, decay: 0.3, sustain: 0.3, release: 3.0 },
-  modulation: { type: "sine" },
-  modulationEnvelope: {
-    attack: 0.01, decay: 0.25, sustain: 0.15, release: 1.6
-  }
+// ピアノ：柔らかく・倍音多めのアタック
+const pianoAmbient = new Tone.Sampler({
+  urls: {
+    "C4": "C4.mp3",
+    "E4": "E4.mp3",
+    "G4": "G4.mp3"
+  },
+  baseUrl: "https://tonejs.github.io/audio/salamander/"
 }).connect(reverb);
 
-// パッド（遠景・柔らか）
-const pad = new Tone.PolySynth(Tone.Synth, {
+// パッド：柔らかく背景に溶ける
+const padAmbient = new Tone.PolySynth(Tone.Synth, {
   oscillator: { type: "sine" },
-  envelope: { attack: 3, sustain: 0.9, release: 10 }
+  envelope: { attack: 2, sustain: 0.9, release: 8 }
 }).connect(reverb);
-pad.volume.value = -16;
+padAmbient.volume.value = -18;
+
+// 主旋律（Debussy/Ravel 系）
+const leadScale = ["C4","D#4","G4","A#4","D5","F4"];
+function playLead(time) {
+  const base = leadScale[Math.floor(Math.random()*leadScale.length)];
+
+  // 時々“出会い”として転調
+  const surprise =
+    Math.random() < 0.1
+      ? Tone.Frequency(base).transpose(2)
+      : base;
+
+  const vel = 0.32 + Math.random()*0.25;
+  const dur = ["8n","4n","8n","16n"][Math.floor(Math.random()*4)];
+
+  pianoAmbient.triggerAttackRelease(surprise, dur, time, vel);
+}
+
+// 伴走アルペジオ（Fractal）
+const arpBase = ["C3","G3","D#3","A#2"];
+function playArp(time) {
+  const phi = 1.618;
+  for (let i=0; i<5; i++) {
+    if (Math.random() > 0.8) continue;
+    const idx = Math.floor((i * phi * 7) % arpBase.length);
+    const note = arpBase[idx];
+    const dt = i * 0.15;
+    padAmbient.triggerAttackRelease(note, "16n", time + dt, 0.15);
+  }
+}
+
+// 和声パッド（1小節ごとに背景で支える）
+const chordProgression = [
+  ["C3","G3","D4"],
+  ["A#2","F3","D4"],
+  ["G2","D3","A#3"]
+];
+
+let chordIndex = 0;
+function playChord(time) {
+  const chord = chordProgression[chordIndex % chordProgression.length];
+  chordIndex++;
+  padAmbient.triggerAttackRelease(chord, "1m", time, 0.22);
+}
+
+// Ambient 全体構造ループ
+const ambientLoop = new Tone.Loop((time) => {
+  playLead(time);
+  playArp(time + 0.25);
+}, "2n");
+
+const ambientChordLoop = new Tone.Loop((time) => {
+  playChord(time);
+}, "1m");
 
 //--------------------------------------
 // Acid 変形用：Kick / Bass

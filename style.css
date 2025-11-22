@@ -1,6 +1,6 @@
-/* ============================
+/* =============================
    Global
-============================ */
+============================= */
 
 * {
   box-sizing: border-box;
@@ -8,16 +8,16 @@
 
 body {
   margin: 0;
-  background: #02060e;
+  background: #02060f;
   font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-  color: #e8f0ff;
+  color: #e5efff;
   overflow: hidden;
   user-select: none;
 }
 
-/* ============================
+/* =============================
    Background Canvas
-============================ */
+============================= */
 
 #mandalaCanvas {
   position: fixed;
@@ -26,48 +26,51 @@ body {
   height: 100vh;
   background:
     radial-gradient(circle at center,
-      #0b1c33 0%,
-      #050812 50%,
-      #01030a 100%);
+      #0b1630 0%,
+      #030713 55%,
+      #010208 100%);
 }
 
-/* ============================
+/* =============================
    Control Panel
-============================ */
+============================= */
 
 #control-panel {
   position: absolute;
-  bottom: 20px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(520px, 94vw);
-  background: radial-gradient(circle at top left,
-      rgba(40,80,140,0.55),
-      rgba(5,8,20,0.92));
-  border-radius: 16px;
-  border: 1px solid rgba(160, 200, 255, 0.6);
+  width: min(480px, 94vw);
+  padding: 18px 22px 16px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left,
+      rgba(70, 120, 210, 0.48),
+      rgba(8, 14, 32, 0.96));
+  border: 1px solid rgba(150, 200, 255, 0.6);
   box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(10, 30, 70, 0.9);
-  padding: 16px 18px 14px;
-  backdrop-filter: blur(16px) saturate(160%);
-  color: #e9f1ff;
+    0 20px 40px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(5, 15, 32, 0.9);
+  backdrop-filter: blur(18px) saturate(170%);
 }
 
 #control-panel h1 {
-  margin: 0 0 2px;
-  font-size: 16px;
-  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  font-size: 18px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-align: center;
+  color: #cfe3ff;
 }
 
 #status-text {
   margin: 0 0 10px;
   font-size: 11px;
-  color: #a7b7da;
+  text-align: center;
+  color: #9fb0d8;
 }
 
-/* Fader blocks */
+/* Faders */
 
 .fader-block {
   margin: 10px 0;
@@ -77,7 +80,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .fader-block label {
@@ -85,11 +88,11 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #c0d0f2;
-  margin-bottom: 3px;
+  color: #c4d5ff;
+  margin-bottom: 4px;
 }
 
-/* Range → 機材系フェーダー */
+/* Slider styling */
 
 input[type="range"] {
   -webkit-appearance: none;
@@ -98,34 +101,34 @@ input[type="range"] {
   height: 8px;
   border-radius: 999px;
   background: linear-gradient(90deg,
-    rgba(30,40,70,1),
-    rgba(15,18,30,1));
+    rgba(15, 26, 48, 1),
+    rgba(6, 10, 22, 1));
   outline: none;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9),
-              0 1px 0 rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* トラック */
 input[type="range"]::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 999px;
 }
 
-/* ツマミ */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
   margin-top: -5px;
-  border-radius: 4px;
-  background: linear-gradient(145deg,
-    #f7f9ff,
-    #d1ddff);
-  border: 1px solid rgba(70,110,190,0.9);
+  border-radius: 40%;
+  background: radial-gradient(circle at 30% 20%,
+    #fdfdff,
+    #d7e6ff);
+  border: 1px solid rgba(90, 140, 220, 0.95);
   box-shadow:
-    0 0 0 1px rgba(0,0,0,0.7),
-    0 2px 4px rgba(0,0,0,0.9);
+    0 0 0 1px rgba(0, 0, 0, 0.85),
+    0 3px 6px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(130, 190, 255, 0.7);
 }
 
 /* Auto toggle */
@@ -133,9 +136,9 @@ input[type="range"]::-webkit-slider-thumb {
 .auto-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 11px;
-  color: #c0d0f2;
+  color: #c4d5ff;
 }
 
 .auto-toggle input[type="checkbox"] {
@@ -150,51 +153,54 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #b0c2e8;
+  color: #aabbe3;
 }
 
 /* Buttons */
 
 #buttons {
-  margin-top: 4px;
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
+  margin-top: 6px;
 }
 
 #buttons button {
-  min-width: 90px;
-  padding: 7px 14px;
+  min-width: 96px;
+  padding: 8px 16px;
   border-radius: 999px;
   border: 1px solid rgba(150, 200, 255, 0.8);
-  background: radial-gradient(circle at top left,
-    rgba(120, 180, 255, 0.9),
-    rgba(50, 100, 200, 0.95));
-  color: #020616;
   font-size: 13px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   transition: 0.18s ease;
   box-shadow:
-    0 4px 12px rgba(0,0,0,0.8),
-    0 0 0 1px rgba(0,0,0,0.8);
+    0 4px 10px rgba(0,0,0,0.85),
+    0 0 0 1px rgba(0,0,0,0.85);
 }
 
-#buttons button:last-child {
-  background: rgba(10, 18, 40, 0.9);
-  color: #e3ecff;
+#btn_start {
+  background: radial-gradient(circle at top left,
+    rgba(150, 210, 255, 0.98),
+    rgba(100, 160, 255, 0.96));
+  color: #020510;
+}
+
+#btn_stop {
+  background: rgba(10, 16, 32, 0.96);
+  color: #e4eeff;
 }
 
 #buttons button:hover {
-  filter: brightness(1.07);
+  filter: brightness(1.08);
 }
 
 /* Responsive */
 
 @media (max-width: 600px) {
   #control-panel {
+    width: 94vw;
     bottom: 10px;
-    width: 96vw;
   }
 }

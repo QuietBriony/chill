@@ -1,18 +1,22 @@
-<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>UCM Chill v2</title><link rel="stylesheet" href="style.css"></head>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Chill Ambient + Acid Mode</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
-<canvas id="bg"></canvas>
-<div id="controls">
-<button id="btn_start">Start</button>
-<button id="btn_stop">Stop</button>
-<button id="btn_acid">Acid</button>
-<button id="btn_auto">Auto</button>
-<div id="modeLabel">Mode: Ambient</div>
-<div id="bpmLabel">BPM: 80</div>
-<input type="range" id="fader_energy" min="0" max="100" value="50">
-<input type="range" id="fader_creation" min="0" max="100" value="50">
-<input type="range" id="fader_nature" min="0" max="100" value="50">
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-<script src="engine.js"></script>
-</body></html>
+
+    <h1>Chill Ambient</h1>
+
+    <div class="controls">
+        <button id="ambientBtn">Ambient</button>
+        <button id="acidBtn">Acid</button>
+        <button id="boostBtn">Deep Bass</button>
+    </div>
+
+    <canvas id="visual"></canvas>
+
+    <script src="main.js"></script>
+</body>
+</html>

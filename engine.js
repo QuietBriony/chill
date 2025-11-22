@@ -1,17 +1,16 @@
-//------------------------------------------------
-//  Chill Piano Ambient — Zen / Acid Edition
-//  Ambient作品＋Acid変形（同じモチーフをバキバキ化）
-//------------------------------------------------
+//------------------------------------------------------
+//  UCM Chill Piano Ambient + Acid Edition（作品版）
+//------------------------------------------------------
 
 let isPlaying = false;
-let autoMode  = false;
 let acidMode  = false;
+let autoMode  = false;
 
-//--------------------------------------
-// 背景マンダラ（軽量）
-//--------------------------------------
+//------------------------------------------------------
+// 背景：軽量マンダラ
+//------------------------------------------------------
 const canvas = document.getElementById("bg");
-const ctx     = canvas.getContext("2d");
+const ctx = canvas.getContext("2d");
 
 function resize() {
   canvas.width  = window.innerWidth;
@@ -23,32 +22,31 @@ window.addEventListener("resize", resize);
 let tBG = 0;
 function drawBG() {
   tBG += 0.002;
-  const w = canvas.width, h = canvas.height;
-  const cx = w / 2, cy = h / 2;
-  const rMax = Math.min(w, h) * 0.35;
 
-  // 背景グラデ
-  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h));
-  g.addColorStop(0, "#081a2e");
-  g.addColorStop(1, "#02070d");
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w/2, cy = h/2;
+  const rMax = Math.min(w,h)*0.33;
+
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(w,h));
+  g.addColorStop(0,"#091724");
+  g.addColorStop(1,"#000207");
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0,0,w,h);
 
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.strokeStyle = "rgba(150,200,255,0.22)";
+  ctx.translate(cx,cy);
+  ctx.strokeStyle = "rgba(150,200,255,0.25)";
   ctx.lineWidth = 0.6;
 
-  // 一筆描きリング
   ctx.beginPath();
-  for (let a = 0; a < Math.PI * 2; a += 0.05) {
-    const wobble = Math.sin(a * 3 + tBG * 2) * 4;
+  for (let a=0; a<Math.PI*2; a+=0.05) {
+    const wobble = Math.sin(a*4 + tBG*1.5)*4;
     const r = rMax + wobble;
-    const x = r * Math.cos(a + tBG*0.1);
-    const y = r * Math.sin(a + tBG*0.1);
-    (a === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    const x = r*Math.cos(a+tBG*0.1);
+    const y = r*Math.sin(a+tBG*0.1);
+    (a===0)?ctx.moveTo(x,y):ctx.lineTo(x,y);
   }
-  ctx.closePath();
   ctx.stroke();
   ctx.restore();
 
@@ -56,187 +54,133 @@ function drawBG() {
 }
 drawBG();
 
-//--------------------------------------
-// Audio Graph（マスタとリバーブ）
-//--------------------------------------
-const master = new Tone.Volume(-18).toDestination();
+//------------------------------------------------------
+// Master / Reverb
+//------------------------------------------------------
+const master = new Tone.Volume(-14).toDestination();
 
 const reverb = new Tone.Reverb({
-  decay: 9,
-  preDelay: 0.05,
-  wet: 0.35
+  decay: 6,
+  preDelay: 0.04,
+  wet: 0.38
 }).connect(master);
 
-//------------------------------------------------
-//  Ambient Piano — 主旋律 + 伴走 + 和声（厚み版）
-//------------------------------------------------
-
-// ピアノ：柔らかく・倍音多めのアタック
-const pianoAmbient = new Tone.Sampler({
-  urls: {
-    "C4": "C4.mp3",
-    "E4": "E4.mp3",
-    "G4": "G4.mp3"
-  },
-  baseUrl: "https://tonejs.github.io/audio/salamander/"
+//------------------------------------------------------
+// ピアノ（ウォーミーに改良）
+//------------------------------------------------------
+const piano = new Tone.Sampler({
+  urls: { "C4":"C4.mp3","E4":"E4.mp3","G4":"G4.mp3","C5":"C5.mp3" },
+  baseUrl: "https://tonejs.github.io/audio/salamander/",
+  attack: 0.002,
 }).connect(reverb);
+piano.volume.value = -4;
 
-// パッド：柔らかく背景に溶ける
-const padAmbient = new Tone.PolySynth(Tone.Synth, {
-  oscillator: { type: "sine" },
-  envelope: { attack: 2, sustain: 0.9, release: 8 }
+// 和声パッド
+const pad = new Tone.PolySynth(Tone.Synth,{
+  oscillator:{type:"sine"},
+  envelope:{attack:1.5,sustain:0.8,release:8}
 }).connect(reverb);
-padAmbient.volume.value = -18;
+pad.volume.value = -18;
 
-// 主旋律（Debussy/Ravel 系）
-const leadScale = ["C4","D#4","G4","A#4","D5","F4"];
+//------------------------------------------------------
+// Ambient Piano：主旋律 ＋ 伴奏（両手）＋ 和声
+//------------------------------------------------------
+
+const scaleLead = ["C4","D#4","G4","A#4","D5","F4"];
+const scaleLeft = ["C2","F2","G2","A#2"];
+const scaleRight= ["C3","D#3","G3","A#3"];
+
 function playLead(time) {
-  const base = leadScale[Math.floor(Math.random()*leadScale.length)];
-
-  // 時々“出会い”として転調
-  const surprise =
-    Math.random() < 0.1
-      ? Tone.Frequency(base).transpose(2)
-      : base;
-
-  const vel = 0.32 + Math.random()*0.25;
-  const dur = ["8n","4n","8n","16n"][Math.floor(Math.random()*4)];
-
-  pianoAmbient.triggerAttackRelease(surprise, dur, time, vel);
+  const n = scaleLead[Math.floor(Math.random()*scaleLead.length)];
+  const vel = 0.3 + Math.random()*0.35;
+  piano.triggerAttackRelease(n,"8n",time,vel);
 }
 
-// 伴走アルペジオ（Fractal）
-const arpBase = ["C3","G3","D#3","A#2"];
-function playArp(time) {
-  const phi = 1.618;
-  for (let i=0; i<5; i++) {
-    if (Math.random() > 0.8) continue;
-    const idx = Math.floor((i * phi * 7) % arpBase.length);
-    const note = arpBase[idx];
-    const dt = i * 0.15;
-    padAmbient.triggerAttackRelease(note, "16n", time + dt, 0.15);
+function playLeftHand(time) {
+  const n = scaleLeft[Math.floor(Math.random()*scaleLeft.length)];
+  piano.triggerAttackRelease(n,"2n",time,0.22);
+}
+
+function playRightArp(time) {
+  for (let i=0;i<4;i++){
+    if (Math.random()>0.7) continue;
+    const n = scaleRight[Math.floor(Math.random()*scaleRight.length)];
+    const dt = i*0.18;
+    piano.triggerAttackRelease(n,"16n",time+dt,0.18);
   }
 }
 
-// 和声パッド（1小節ごとに背景で支える）
-const chordProgression = [
+let chordIndex=0;
+const chords = [
   ["C3","G3","D4"],
   ["A#2","F3","D4"],
   ["G2","D3","A#3"]
 ];
 
-let chordIndex = 0;
-function playChord(time) {
-  const chord = chordProgression[chordIndex % chordProgression.length];
+function playPadChord(time){
+  const c = chords[chordIndex%chords.length];
   chordIndex++;
-  padAmbient.triggerAttackRelease(chord, "1m", time, 0.22);
+  pad.triggerAttackRelease(c,"1m",time,0.25);
 }
 
-// Ambient 全体構造ループ
-const ambientLoop = new Tone.Loop((time) => {
+// メイン Ambient ループ
+const ambientLoop = new Tone.Loop((time)=>{
   playLead(time);
-  playArp(time + 0.25);
+  playRightArp(time+0.35);
 }, "2n");
 
-const ambientChordLoop = new Tone.Loop((time) => {
-  playChord(time);
+const leftLoop = new Tone.Loop((time)=>{
+  playLeftHand(time);
 }, "1m");
 
-//--------------------------------------
-// Acid 変形用：Kick / Bass
-//--------------------------------------
+const chordLoop = new Tone.Loop((time)=>{
+  playPadChord(time);
+}, "1m");
 
+//------------------------------------------------------
+// Acid：自動生成（複雑性 + 美しさ）
+//------------------------------------------------------
 const acidKick = new Tone.MembraneSynth({
-  pitchDecay: 0.03,
-  octaves: 6,
-  envelope: { attack: 0.001, decay: 0.35, sustain: 0 }
+  pitchDecay:0.03,
+  octaves:6,
+  envelope:{attack:0.001,decay:0.3,sustain:0}
 }).connect(master);
 
-// Acid Bass: Saw→Dist→Filter→Reverb
-const acidDist = new Tone.Distortion(0.35);
-const acidFilter = new Tone.Filter(900, "lowpass", -24).connect(reverb);
-acidDist.connect(acidFilter);
+const aFilter = new Tone.Filter(900,"lowpass",-24).connect(reverb);
+const aDist   = new Tone.Distortion(0.38).connect(aFilter);
 
 const acidBass = new Tone.MonoSynth({
-  oscillator: { type: "sawtooth" },
-  envelope: { attack: 0.01, decay: 0.2, sustain: 0.7, release: 0.1 },
-  filter: { Q: 10 },
-}).connect(acidDist);
+  oscillator:{type:"sawtooth"},
+  envelope:{attack:0.01,decay:0.2,sustain:0.7,release:0.1},
+  filter:{Q:12}
+}).connect(aDist);
 acidBass.volume.value = -14;
 
-//--------------------------------------
-// パターン（Ambient）
-//--------------------------------------
+let acidStep=0;
+const acidSeq=["C3","C3","A2","G2","C3","D3"];
 
-const debussyScale = ["C4","D#4","G4","A#4","D5","F4"];
+function playAcidBass(time){
+  const n = acidSeq[acidStep%acidSeq.length];
+  const vel=0.45+Math.random()*0.25;
+  acidBass.triggerAttackRelease(n,"16n",time,vel);
 
-function playDebussy(time) {
-  let t = time;
-  for (let i=0; i<debussyScale.length; i++) {
-    // ちょっと間引き（静けさ）
-    if (Math.random() > 0.6) continue;
-    const n = debussyScale[i];
-    const vel = 0.35 + Math.random()*0.3;
-    piano.triggerAttackRelease(n, "8n", t, vel);
-    const swing = 1 + Math.sin(i*0.6)*0.25;
-    t += Tone.Time("8n") * swing;
-  }
-}
+  // 自動生成フィルタ動作
+  const cutoff = 800 + Math.sin(time*0.4)*500 + Math.random()*300;
+  aFilter.frequency.rampTo(cutoff,0.1);
 
-// Fractal的アルペジオ（Pad）
-const phi = 1.6180339887;
-const arpNotes = ["C3","G3","D#3","A#2"];
-
-function playArp(time) {
-  for (let i=0; i<6; i++) {
-    if (Math.random() > 0.7) continue;
-    const idx = Math.floor((i * phi * 5) % arpNotes.length);
-    const dt  = i * 0.12;
-    pad.triggerAttackRelease(arpNotes[idx], "16n", time + dt, 0.22);
-  }
-}
-
-//--------------------------------------
-// パターン（Acid：同モチーフを変形）
-//--------------------------------------
-
-const acidScale = ["C3","C3","G2","C3","C3","G2","C3","A2"];
-let acidStep = 0;
-
-function playAcidBass(time) {
-  const idx = acidStep % acidScale.length;
-  const note = acidScale[idx];
-  const vel  = 0.5 + Math.random()*0.2;
-  acidBass.triggerAttackRelease(note, "16n", time, vel);
   acidStep++;
 }
 
-function playAcidKick(time) {
-  acidKick.triggerAttackRelease("C1", "8n", time);
+function playAcidKick(time){
+  acidKick.triggerAttackRelease("C1","8n",time);
 }
 
-//--------------------------------------
-// Loops
-//--------------------------------------
+const acidKickLoop = new Tone.Loop(time=>playAcidKick(time),"4n");
+const acidBassLoop = new Tone.Loop(time=>playAcidBass(time),"16n");
 
-// Ambient 作品ループ
-const ambientLoop = new Tone.Loop((time) => {
-  playDebussy(time);
-  playArp(time + 0.4);
-}, "1m");
-
-// Acid 用ループ（最初は止めておく）
-const acidKickLoop = new Tone.Loop((time) => {
-  playAcidKick(time);
-}, "4n");
-
-const acidBassLoop = new Tone.Loop((time) => {
-  playAcidBass(time);
-}, "16n");
-
-//--------------------------------------
-// UI & パラメータ
-//--------------------------------------
+//------------------------------------------------------
+// UI
+//------------------------------------------------------
 
 const fEnergy   = document.getElementById("fader_energy");
 const fCreation = document.getElementById("fader_creation");
@@ -244,61 +188,32 @@ const fNature   = document.getElementById("fader_nature");
 const modeLabel = document.getElementById("modeLabel");
 const bpmLabel  = document.getElementById("bpmLabel");
 
-let autoTimer = null;
+function applyFaders(){
+  const e = Number(fEnergy.value);
+  const c = Number(fCreation.value);
+  const n = Number(fNature.value);
 
-function clamp(v, min, max) {
-  return v < min ? min : (v > max ? max : v);
+  const bpm = acidMode ? 120+e*0.5 : 70+e*0.3;
+  Tone.Transport.bpm.rampTo(bpm,0.8);
+  bpmLabel.textContent = bpm.toFixed(0)+" BPM";
+
+  pad.volume.rampTo(-20 + n*0.06,1.0);
+
+  aDist.distortion = 0.25 + c*0.004;
+  aFilter.frequency.rampTo(600 + c*4,1.0);
 }
 
-function applyFaders() {
-  const energy   = parseInt(fEnergy.value, 10);
-  const creation = parseInt(fCreation.value, 10);
-  const nature   = parseInt(fNature.value, 10);
+document.getElementById("btn_start").onclick = async ()=>{
+  if(isPlaying) return;
+  await Tone.start();
+  Tone.Transport.start();
 
-  // BPM マッピング（Acidのときは速く）
-  const bpm = acidMode
-    ? 115 + energy * 0.3     // 115〜145
-    : 60  + energy * 0.3;    // 60〜90
-
-  Tone.Transport.bpm.rampTo(bpm, 0.8);
-  bpmLabel.textContent = "BPM: " + Math.round(bpm);
-
-  // Pad の音量（Nature）
-  const padVol = -20 + nature * 0.06;  // -20〜-14
-  pad.volume.rampTo(padVol, 1.0);
-
-  // Acid フィルタ（Creation）
-  const cutoff = 400 + creation * 8;   // 400〜1200
-  acidFilter.frequency.rampTo(cutoff, 0.8);
-  acidDist.distortion = 0.2 + creation * 0.005; // 0.2〜0.7
-}
-
-// Auto ドリフト（Ambient用・軽め）
-function scheduleAuto() {
-  if (!autoMode) return;
-  const delayMs = (60 + Math.random()*180) * 1000; // 1〜4分
-  autoTimer = setTimeout(() => {
-    fEnergy.value   = clamp(parseInt(fEnergy.value,10)   + (Math.random()*20-10), 0, 100);
-    fCreation.value = clamp(parseInt(fCreation.value,10) + (Math.random()*20-10), 0, 100);
-    fNature.value   = clamp(parseInt(fNature.value,10)   + (Math.random()*20-10), 0, 100);
-    applyFaders();
-    scheduleAuto();
-  }, delayMs);
-}
-
-//--------------------------------------
-// ボタン操作
-//--------------------------------------
-
-document.getElementById("btn_start").onclick = async () => {
-  if (isPlaying) return;
-  await Tone.start();              // ブラウザの制限解除
-  Tone.Transport.start("+0.05");
-  isPlaying = true;
-
-  modeLabel.textContent = acidMode ? "Mode: Ambient + Acid" : "Mode: Ambient";
+  isPlaying=true;
   ambientLoop.start(0);
-  if (acidMode) {
+  leftLoop.start(0);
+  chordLoop.start(0);
+
+  if(acidMode){
     acidKickLoop.start(0);
     acidBassLoop.start("16n");
   }
@@ -306,45 +221,30 @@ document.getElementById("btn_start").onclick = async () => {
   applyFaders();
 };
 
-document.getElementById("btn_stop").onclick = () => {
-  isPlaying = false;
+document.getElementById("btn_stop").onclick=()=>{
+  isPlaying=false;
   Tone.Transport.stop();
 };
 
-document.getElementById("btn_auto").onclick = () => {
-  autoMode = !autoMode;
-  document.getElementById("btn_auto").textContent = autoMode ? "Auto*" : "Auto";
-  if (!autoMode && autoTimer) {
-    clearTimeout(autoTimer);
-    autoTimer = null;
-  } else if (autoMode) {
-    scheduleAuto();
-  }
-};
+// Acid
+document.getElementById("btn_acid").onclick=()=>{
+  acidMode=!acidMode;
+  modeLabel.textContent = acidMode ? "Mode: Ambient + Acid" : "Mode: Ambient";
 
-// Acid ボタン：同じモチーフを一気にアシッド化
-document.getElementById("btn_acid").onclick = () => {
-  acidMode = !acidMode;
-
-  if (acidMode) {
-    modeLabel.textContent = "Mode: Ambient + Acid";
-    if (isPlaying) {
+  if(isPlaying){
+    if(acidMode){
       acidKickLoop.start(0);
       acidBassLoop.start("16n");
+    } else {
+      acidKickLoop.stop();
+      acidBassLoop.stop();
     }
-  } else {
-    modeLabel.textContent = "Mode: Ambient";
-    acidKickLoop.stop();
-    acidBassLoop.stop();
   }
 
   applyFaders();
 };
 
-// フェーダー変更時
-[fEnergy, fCreation, fNature].forEach(el => {
-  el.addEventListener("input", applyFaders);
-});
-
-// 初期適用
-applyFaders();
+// Auto
+document.getElementById("btn_auto").onclick=()=>{
+  autoMode=!autoMode;
+};

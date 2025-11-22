@@ -1,56 +1,18 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Chill Piano Ambient + Acid</title>
-
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- Tone.js -->
-  <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
-
-  <!-- Engine -->
-  <script src="engine.js" defer></script>
-</head>
-
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>UCM Chill v2</title><link rel="stylesheet" href="style.css"></head>
 <body>
-
-  <!-- 背景マンダラ（軽量 Canvas） -->
-  <canvas id="bg"></canvas>
-
-  <!-- メインコントロールパネル -->
-  <div id="panel">
-    <h1>Chill Piano Ambient</h1>
-    <p id="modeLabel">Mode: Ambient</p>
-    <p id="bpmLabel">BPM: --</p>
-
-    <div class="fader">
-      <label for="fader_energy">Energy（静 ⇄ 動）</label>
-      <input type="range" id="fader_energy" min="0" max="100" value="25" />
-    </div>
-
-    <div class="fader">
-      <label for="fader_creation">Creation（Acidの派手さ）</label>
-      <input type="range" id="fader_creation" min="0" max="100" value="40" />
-    </div>
-
-    <div class="fader">
-      <label for="fader_nature">Nature（パッドの厚み）</label>
-      <input type="range" id="fader_nature" min="0" max="100" value="20" />
-    </div>
-
-    <div class="buttons">
-      <button id="btn_start">Start</button>
-      <button id="btn_stop">Stop</button>
-      <button id="btn_auto">Auto</button>
-    </div>
-  </div>
-
-  <!-- Acid ボタンは画面左下に分離 -->
-  <div id="acid-panel">
-    <button id="btn_acid">ACID</button>
-  </div>
-
-</body>
-</html>
+<canvas id="bg"></canvas>
+<div id="controls">
+<button id="btn_start">Start</button>
+<button id="btn_stop">Stop</button>
+<button id="btn_acid">Acid</button>
+<button id="btn_auto">Auto</button>
+<div id="modeLabel">Mode: Ambient</div>
+<div id="bpmLabel">BPM: 80</div>
+<input type="range" id="fader_energy" min="0" max="100" value="50">
+<input type="range" id="fader_creation" min="0" max="100" value="50">
+<input type="range" id="fader_nature" min="0" max="100" value="50">
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script src="engine.js"></script>
+</body></html>

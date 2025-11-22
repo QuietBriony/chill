@@ -3,67 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCM Piano Ambient — Fractal Suite</title>
+  <title>UCM Piano Ambient — Zen Fractal / RAVE</title>
 
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Tone.js -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+
+  <!-- Engine -->
   <script src="engine.js" defer></script>
 </head>
 
 <body>
 
-  <!-- 軽量フラクタル背景 -->
-  <canvas id="mandalaCanvas"></canvas>
+  <!-- マンダラ背景 -->
+  <canvas id="bg"></canvas>
 
   <!-- コントロールパネル -->
-  <div id="control-panel">
+  <div id="panel">
     <h1>UCM Piano Ambient</h1>
-    <p id="status-text">Ready</p>
+    <p id="modeLabel">Mode: Ambient Piano</p>
+    <p id="bpmLabel">BPM: --</p>
 
-    <div class="fader-block">
-      <label for="f_style">Style（Classical ⇄ Ambient）</label>
-      <input id="f_style" type="range" min="0" max="100" value="30" />
+    <div class="fader">
+      <label for="fader_energy">Energy（静 ⇄ 動）</label>
+      <input type="range" id="fader_energy" min="0" max="100" value="25" />
     </div>
 
-    <div class="fader-block">
-      <label for="f_energy">Energy（音数・動き）</label>
-      <input id="f_energy" type="range" min="0" max="100" value="30" />
+    <div class="fader">
+      <label for="fader_creation">Creation（跳ね・生成）</label>
+      <input type="range" id="fader_creation" min="0" max="100" value="50" />
     </div>
 
-    <div class="fader-block">
-      <label for="f_space">Space / Reverb（余白）</label>
-      <input id="f_space" type="range" min="0" max="100" value="60" />
-    </div>
-
-    <div class="fader-block">
-      <label for="f_bright">Brightness（明るさ）</label>
-      <input id="f_bright" type="range" min="0" max="100" value="40" />
-    </div>
-
-    <div class="fader-block">
-      <label for="f_volume">Master Volume</label>
-      <input id="f_volume" type="range" min="-30" max="0" value="-16" />
-    </div>
-
-    <div class="fader-block inline">
-      <div>
-        <label for="f_auto_len">Auto drift（1–5 min）</label>
-        <input id="f_auto_len" type="range" min="1" max="5" value="3" />
-      </div>
-      <div class="auto-toggle">
-        <label for="auto_toggle">AUTO</label>
-        <input id="auto_toggle" type="checkbox" checked />
-      </div>
-    </div>
-
-    <div id="info-row">
-      <span id="mode-label">Mode: Ambient Piano A</span>
-      <span id="bpm-label">Tempo: 70 BPM</span>
+    <div class="fader">
+      <label for="fader_nature">Nature（自然度）</label>
+      <input type="range" id="fader_nature" min="0" max="100" value="15" />
     </div>
 
     <div id="buttons">
       <button id="btn_start">Start</button>
       <button id="btn_stop">Stop</button>
+      <button id="btn_auto">Auto</button>
+      <button id="btn_rave">RAVE</button>
     </div>
   </div>
 

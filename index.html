@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chill Piano Ambient — Zen / Acid</title>
+  <title>UCM Chill Piano Ambient + Acid</title>
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Tone.js（必ず先に読み込む） -->
+  <!-- Tone.js -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 
-  <!-- エンジン本体 -->
+  <!-- Engine -->
   <script src="engine.js" defer></script>
 </head>
 
 <body>
 
-  <!-- 背景マンダラ（軽量） -->
+  <!-- 背景マンダラ（軽量 Canvas） -->
   <canvas id="bg"></canvas>
 
-  <!-- メインコントロール -->
+  <!-- メインコントロールパネル -->
   <div id="panel">
     <h1>Chill Piano Ambient</h1>
     <p id="modeLabel">Mode: Ambient</p>
@@ -31,13 +31,13 @@
     </div>
 
     <div class="fader">
-      <label for="fader_creation">Creation（生成の派手さ）</label>
-      <input type="range" id="fader_creation" min="0" max="100" value="35" />
+      <label for="fader_creation">Creation（Acidの派手さ）</label>
+      <input type="range" id="fader_creation" min="0" max="100" value="40" />
     </div>
 
     <div class="fader">
-      <label for="fader_nature">Nature（自然度）</label>
-      <input type="range" id="fader_nature" min="0" max="100" value="15" />
+      <label for="fader_nature">Nature（パッドの厚み）</label>
+      <input type="range" id="fader_nature" min="0" max="100" value="20" />
     </div>
 
     <div class="buttons">
@@ -47,7 +47,7 @@
     </div>
   </div>
 
-  <!-- Acid ボタンは画面左下に離す -->
+  <!-- Acid ボタンは画面左下に分離 -->
   <div id="acid-panel">
     <button id="btn_acid">ACID</button>
   </div>

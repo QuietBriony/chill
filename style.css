@@ -1,88 +1,68 @@
 body {
   margin: 0;
+  background: #02070c;
   font-family: "Inter", "Noto Sans JP", sans-serif;
-  color: #eef5ff;
-  background: #02070d;
+  color: #eaf3ff;
   overflow: hidden;
 }
 
-/* 背景 Canvas */
+/* 背景（軽い） */
 #bg {
   position: fixed;
-  top: 0; left: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
 }
 
-/* パネル */
+/* コントロールパネル */
 #panel {
   position: fixed;
   right: 20px;
   top: 20px;
-  width: 270px;
-  background: rgba(19, 28, 48, 0.55);
-  backdrop-filter: blur(16px);
-  padding: 18px 18px 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(120,160,255,0.25);
-  box-shadow: 0 0 20px rgba(80,120,255,0.25);
-}
-
-h1 {
-  font-size: 18px;
-  margin: 0 0 6px;
-  color: #dfeaff;
-  text-shadow: 0 0 8px #5caaff;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-#modeLabel,
-#bpmLabel {
-  margin: 2px 0;
-  font-size: 12px;
-  opacity: 0.85;
+  width: 260px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(18, 28, 48, 0.55);
+  border: 1px solid rgba(120,150,255,0.25);
+  backdrop-filter: blur(12px);
 }
 
 /* フェーダー */
 .fader {
-  margin: 10px 0 14px;
-}
-
-.fader label {
-  font-size: 11px;
-  opacity: 0.9;
+  margin: 14px 0;
 }
 
 .fader input[type="range"] {
   width: 100%;
-  margin-top: 4px;
-  accent-color: #82b7ff;
+  accent-color: #7cb3ff;
 }
 
 /* ボタン */
-#buttons {
-  margin-top: 6px;
-}
-
-#buttons button {
-  width: 60px;
-  padding: 7px 0;
+.buttons button {
+  padding: 6px 0;
+  width: 70px;
+  margin-right: 6px;
+  margin-top: 8px;
   border-radius: 12px;
   border: 1px solid #355c9a;
   background: #0f2338;
-  color: #dfeaff;
+  color: #cfe5ff;
   cursor: pointer;
-  font-size: 11px;
-  margin-right: 4px;
-  transition: 0.15s;
 }
 
-#buttons button:hover {
-  background: #13304f;
+/* RAVEボタンは遠くに */
+#rave-panel {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
 }
 
 #btn_rave {
-  border-color: #ff5c8a;
-  color: #ffd6e8;
+  width: 100px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid #ff5c8a;
+  background: #2a0a16;
+  color: #ffd9e6;
+  font-weight: 600;
 }

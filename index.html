@@ -2,7 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Chill Piano Ambient + Acid v2</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Chill v2.2 — Cyber-Zen Pro Edition</title>
+
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
@@ -11,18 +15,18 @@
   <canvas id="bg"></canvas>
 
   <div class="panel">
-    <h1>Chill Piano Ambient + Acid v2</h1>
+    <h1>Chill v2.2<br><span>Cyber-Zen Pro</span></h1>
 
     <div class="controls">
-      <button id="startBtn">Start</button>
-      <button id="stopBtn">Stop</button>
-      <button id="autoBtn">Auto</button>
-      <button id="acidBtn">Acid</button>
+      <button id="startBtn">▶ START</button>
+      <button id="acidBtn">⟡ ACID</button>
+      <button id="autoBtn">∞ AUTO</button>
+      <button id="stopBtn">■ STOP</button>
     </div>
 
     <div class="faders">
       <label>Energy
-        <input id="energy" type="range" min="0" max="1" step="0.01" value="0.5"/>
+        <input id="energy" type="range" min="0" max="1" step="0.01" value="0.6"/>
       </label>
 
       <label>Creation
@@ -30,7 +34,7 @@
       </label>
 
       <label>Nature
-        <input id="nature" type="range" min="0" max="1" step="0.01" value="0.5"/>
+        <input id="nature" type="range" min="0" max="1" step="0.01" value="0.4"/>
       </label>
     </div>
   </div>

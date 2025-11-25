@@ -109,7 +109,7 @@ let acidOn = false;
 // Loops（ピアノ右手 / 左手 / Pad / Acid）
 //------------------------------------------------------
 
-// ピアノ右手：美メロ
+// 🎹 ピアノ右手：美メロ（C Lydian / Pentatonic ミックス感）
 const scale = ["C4","D4","E4","G4","A4","C5","D5","E5","G5"];
 
 const melodyLoop = new Tone.Loop(time => {
@@ -120,7 +120,7 @@ const melodyLoop = new Tone.Loop(time => {
   }
 }, "16n");
 
-// ピアノ左手：ベース
+// 🎹 ピアノ左手：ベース循環（Natureで周期変化）
 const bassNotes = ["C2","G2","D2","E2"];
 let bi = 0;
 
@@ -129,12 +129,12 @@ const leftLoop = new Tone.Loop(time => {
   bi++;
 }, () => natureVal < 0.5 ? "2m" : "1m");
 
-// Pad コード循環
+// 🫧 Pad コード循環（Energyで明るさ変化）
 const chords = [
-  ["C4","E4","G4","B4"],
-  ["A3","E4","A4","C5"],
-  ["F4","A4","C5","E5"],
-  ["G3","D4","G4","A4"]
+  ["C4","E4","G4","B4"],  // Cmaj7
+  ["A3","E4","A4","C5"],  // Am9
+  ["F4","A4","C5","E5"],  // Fmaj7(#11) 風
+  ["G3","D4","G4","A4"]   // Gadd9
 ];
 let ci = 0;
 
@@ -144,7 +144,7 @@ const padLoop = new Tone.Loop(time => {
   ci = (ci + 1) % chords.length;
 }, "2m");
 
-// Acid ループ
+// 🧪 Acid ループ
 const acidLoop = new Tone.Loop(time => {
   if (!acidOn) return;
 
@@ -210,7 +210,6 @@ startBtn.onclick = async () => {
     await piano.loaded;
 
     if (!started) {
-      // タイムライン初期化
       Tone.Transport.position = 0;
       melodyLoop.start(0);
       leftLoop.start(0);

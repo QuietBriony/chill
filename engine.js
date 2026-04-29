@@ -1,13 +1,547 @@
 //------------------------------------------------------
-// グローバル状態（UI値）
+// Public runtime contracts
 //------------------------------------------------------
-let energyVal = 0.6;
-let creationVal = 0.5;
-let natureVal = 0.4;
+
+/**
+ * @typedef {"ambient" | "edge"} ChillMode
+ * @typedef {"calm" | "glow" | "drift" | "edge"} ChillMood
+ *
+ * @typedef {Object} ChillRuntimeConfig
+ * @property {ChillMode} mode
+ * @property {number} seed
+ * @property {number} faderA
+ * @property {number} faderB
+ * @property {number} faderC
+ * @property {ChillMood=} mood
+ * @property {string=} referenceId
+ *
+ * @typedef {Object} ChillRecipeLayer
+ * @property {string} id
+ * @property {"lead" | "pad" | "bass" | "kick" | "hat" | "air"} type
+ * @property {number} every
+ * @property {number} probability
+ * @property {string | string[]=} duration
+ * @property {string[] | string[][]=} notes
+ * @property {number=} velocity
+ * @property {number=} densityWeight
+ * @property {number=} energyWeight
+ * @property {number=} natureWeight
+ * @property {number=} filterBase
+ * @property {number=} filterRange
+ *
+ * @typedef {Object} ChillRecipe
+ * @property {string} id
+ * @property {string} label
+ * @property {ChillMode} mode
+ * @property {ChillMood} mood
+ * @property {{faderA:number, faderB:number, faderC:number}} defaultFaders
+ * @property {ChillRecipeLayer[]} layers
+ * @property {{id:string, chance:number, densityDelta?:number, energyDelta?:number, natureDelta?:number}[]} variations
+ * @property {{maxDensity:number, quietOnLateTicks:number, fallback:"air" | "mute"}} transitionRules
+ */
+
+const STORAGE_KEYS = Object.freeze({
+  session: "chill:session:v1",
+  recipe: "chill:recipe:v1",
+  lastSeed: "chill:lastSeed",
+});
+
+const DEFAULT_CONFIG = Object.freeze({
+  mode: "ambient",
+  seed: 240424,
+  faderA: 0.6,
+  faderB: 0.5,
+  faderC: 0.4,
+  mood: "glow",
+  referenceId: "namima-ambient",
+});
+
+const MOODS = Object.freeze(["calm", "glow", "drift", "edge"]);
+
+/** @type {Record<string, ChillRecipe>} */
+const CHILL_RECIPES = Object.freeze({
+  "namima-ambient": {
+    id: "namima-ambient",
+    label: "namima ambient",
+    mode: "ambient",
+    mood: "calm",
+    defaultFaders: { faderA: 0.48, faderB: 0.46, faderC: 0.72 },
+    layers: [
+      {
+        id: "breathing-pad",
+        type: "pad",
+        every: 32,
+        probability: 0.94,
+        duration: "2m",
+        notes: [
+          ["C4", "E4", "G4", "B4"],
+          ["A3", "E4", "A4", "C5"],
+          ["F4", "A4", "C5", "E5"],
+          ["G3", "D4", "G4", "A4"],
+        ],
+        velocity: 0.48,
+        energyWeight: 0.08,
+        natureWeight: 0.16,
+        filterBase: 620,
+        filterRange: 960,
+      },
+      {
+        id: "glass-lead",
+        type: "lead",
+        every: 2,
+        probability: 0.23,
+        duration: ["16n", "8n", "8t", "4n"],
+        notes: ["C4", "D4", "E4", "G4", "A4", "C5", "D5", "E5", "G5"],
+        velocity: 0.35,
+        densityWeight: 0.42,
+        energyWeight: 0.22,
+        natureWeight: -0.08,
+        filterBase: 720,
+        filterRange: 1300,
+      },
+      {
+        id: "slow-root",
+        type: "bass",
+        every: 32,
+        probability: 0.72,
+        duration: "2n",
+        notes: ["C2", "G2", "D2", "E2"],
+        velocity: 0.34,
+        energyWeight: 0.1,
+        natureWeight: 0.1,
+      },
+      {
+        id: "air-safety",
+        type: "air",
+        every: 8,
+        probability: 0.18,
+        duration: "16n",
+        velocity: 0.08,
+        natureWeight: 0.24,
+      },
+    ],
+    variations: [
+      { id: "soft-bloom", chance: 0.12, energyDelta: 0.03, natureDelta: 0.04 },
+      { id: "density-rest", chance: 0.18, densityDelta: -0.05 },
+    ],
+    transitionRules: {
+      maxDensity: 0.76,
+      quietOnLateTicks: 3,
+      fallback: "air",
+    },
+  },
+  "music-edge": {
+    id: "music-edge",
+    label: "Music edge",
+    mode: "edge",
+    mood: "edge",
+    defaultFaders: { faderA: 0.78, faderB: 0.68, faderC: 0.46 },
+    layers: [
+      {
+        id: "acid-root",
+        type: "bass",
+        every: 1,
+        probability: 0.22,
+        duration: "16n",
+        notes: ["C2", "C2", "G1", "A#1", "D2"],
+        velocity: 0.42,
+        densityWeight: 0.5,
+        energyWeight: 0.28,
+        natureWeight: -0.1,
+        filterBase: 380,
+        filterRange: 1800,
+      },
+      {
+        id: "edge-kick",
+        type: "kick",
+        every: 4,
+        probability: 0.56,
+        duration: "8n",
+        velocity: 0.46,
+        energyWeight: 0.34,
+      },
+      {
+        id: "edge-hat",
+        type: "hat",
+        every: 2,
+        probability: 0.22,
+        duration: "16n",
+        velocity: 0.16,
+        densityWeight: 0.32,
+        natureWeight: 0.16,
+      },
+      {
+        id: "neon-lead",
+        type: "lead",
+        every: 2,
+        probability: 0.18,
+        duration: ["16n", "8n"],
+        notes: ["C4", "D#4", "F4", "G4", "A#4", "C5", "D#5"],
+        velocity: 0.32,
+        densityWeight: 0.38,
+        energyWeight: 0.24,
+        filterBase: 920,
+        filterRange: 1800,
+      },
+    ],
+    variations: [
+      { id: "edge-injection", chance: 0.22, densityDelta: 0.06, energyDelta: 0.04 },
+      { id: "guard-drop", chance: 0.1, densityDelta: -0.16, natureDelta: 0.05 },
+    ],
+    transitionRules: {
+      maxDensity: 0.86,
+      quietOnLateTicks: 2,
+      fallback: "air",
+    },
+  },
+  "drum-floor-drift": {
+    id: "drum-floor-drift",
+    label: "drum-floor drift",
+    mode: "ambient",
+    mood: "drift",
+    defaultFaders: { faderA: 0.58, faderB: 0.42, faderC: 0.82 },
+    layers: [
+      {
+        id: "floor-pad",
+        type: "pad",
+        every: 32,
+        probability: 0.88,
+        duration: "2m",
+        notes: [
+          ["D3", "A3", "C4", "F4"],
+          ["C3", "G3", "B3", "E4"],
+          ["A2", "E3", "G3", "D4"],
+          ["F3", "C4", "E4", "A4"],
+        ],
+        velocity: 0.42,
+        energyWeight: 0.08,
+        natureWeight: 0.2,
+        filterBase: 520,
+        filterRange: 1100,
+      },
+      {
+        id: "floor-pulse",
+        type: "kick",
+        every: 8,
+        probability: 0.32,
+        duration: "8n",
+        velocity: 0.32,
+        energyWeight: 0.28,
+        densityWeight: 0.18,
+      },
+      {
+        id: "floor-root",
+        type: "bass",
+        every: 16,
+        probability: 0.44,
+        duration: "4n",
+        notes: ["D2", "C2", "A1", "F2"],
+        velocity: 0.36,
+        energyWeight: 0.12,
+        natureWeight: 0.18,
+      },
+      {
+        id: "recovery-air",
+        type: "air",
+        every: 4,
+        probability: 0.16,
+        duration: "16n",
+        velocity: 0.07,
+        natureWeight: 0.28,
+      },
+    ],
+    variations: [
+      { id: "drift-recovery", chance: 0.2, densityDelta: -0.04, natureDelta: 0.08 },
+      { id: "pulse-lift", chance: 0.12, energyDelta: 0.05 },
+    ],
+    transitionRules: {
+      maxDensity: 0.68,
+      quietOnLateTicks: 2,
+      fallback: "air",
+    },
+  },
+});
 
 //------------------------------------------------------
-// Canvas 初期化（Cyber-Zen マンダラ）
+// Small deterministic utilities
 //------------------------------------------------------
+
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function normalizeSeed(seed) {
+  const parsed = Number(seed);
+  if (!Number.isFinite(parsed)) return DEFAULT_CONFIG.seed;
+  return Math.abs(Math.floor(parsed)) % 2147483647;
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function randomAt(seed, tick, salt) {
+  let x = (normalizeSeed(seed) ^ Math.imul(tick + 1, 374761393) ^ hashString(salt)) >>> 0;
+  x ^= x << 13;
+  x ^= x >>> 17;
+  x ^= x << 5;
+  return (x >>> 0) / 4294967296;
+}
+
+function chooseAt(items, seed, tick, salt) {
+  if (!items || items.length === 0) return undefined;
+  const index = Math.floor(randomAt(seed, tick, salt) * items.length);
+  return items[Math.min(index, items.length - 1)];
+}
+
+function safeJsonRead(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (error) {
+    console.warn("chill storage read failed", key, error);
+    return fallback;
+  }
+}
+
+function safeStorageRead(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.warn("chill storage read failed", key, error);
+    return null;
+  }
+}
+
+function safeJsonWrite(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn("chill storage write failed", key, error);
+  }
+}
+
+function inferMoodFromFaders(a, b, c) {
+  if (a > 0.72 && b > 0.58) return "edge";
+  if (c > 0.68 && b < 0.66) return "drift";
+  if (a > 0.52 || b > 0.58) return "glow";
+  return "calm";
+}
+
+function intentToFaders(intent = {}) {
+  const mood = MOODS.includes(intent.mood) ? intent.mood : "glow";
+  const intensity = clamp01(intent.intensity ?? (mood === "edge" ? 0.78 : 0.52));
+  const density = clamp01(intent.density ?? (mood === "calm" ? 0.36 : 0.56));
+  const moodBase = {
+    calm: { faderA: 0.38, faderB: 0.32, faderC: 0.78 },
+    glow: { faderA: 0.58, faderB: 0.54, faderC: 0.56 },
+    drift: { faderA: 0.48, faderB: 0.4, faderC: 0.86 },
+    edge: { faderA: 0.82, faderB: 0.7, faderC: 0.42 },
+  }[mood];
+
+  return {
+    faderA: clamp01(moodBase.faderA * 0.55 + intensity * 0.45),
+    faderB: clamp01(moodBase.faderB * 0.55 + density * 0.45),
+    faderC: clamp01(moodBase.faderC),
+  };
+}
+
+function loadConfig() {
+  const storedSession = safeJsonRead(STORAGE_KEYS.session, {});
+  const storedSeedRaw = safeStorageRead(STORAGE_KEYS.lastSeed);
+  const storedSeed = storedSeedRaw === null ? NaN : Number(storedSeedRaw);
+  const next = {
+    ...DEFAULT_CONFIG,
+    ...storedSession,
+    seed: Number.isFinite(storedSeed) ? storedSeed : storedSession.seed ?? DEFAULT_CONFIG.seed,
+  };
+
+  next.seed = normalizeSeed(next.seed);
+  next.faderA = clamp01(next.faderA);
+  next.faderB = clamp01(next.faderB);
+  next.faderC = clamp01(next.faderC);
+  next.referenceId = CHILL_RECIPES[next.referenceId] ? next.referenceId : DEFAULT_CONFIG.referenceId;
+  next.mood = MOODS.includes(next.mood) ? next.mood : inferMoodFromFaders(next.faderA, next.faderB, next.faderC);
+  next.mode = next.mode === "edge" ? "edge" : "ambient";
+  return next;
+}
+
+function persistConfig(config) {
+  safeJsonWrite(STORAGE_KEYS.session, {
+    mode: config.mode,
+    seed: config.seed,
+    faderA: config.faderA,
+    faderB: config.faderB,
+    faderC: config.faderC,
+    mood: config.mood,
+    referenceId: config.referenceId,
+  });
+  safeJsonWrite(STORAGE_KEYS.recipe, {
+    referenceId: config.referenceId,
+    updatedAt: new Date().toISOString(),
+  });
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.lastSeed, String(config.seed));
+  } catch (error) {
+    console.warn("chill seed storage write failed", error);
+  }
+}
+
+//------------------------------------------------------
+// ChillGenerator event interface
+//------------------------------------------------------
+
+class ChillGenerator {
+  constructor(config, recipes) {
+    this.config = { ...config };
+    this.recipes = recipes;
+    this.tickIndex = 0;
+    this.manualMood = null;
+    this.lastFaderChangeAt = performance.now();
+  }
+
+  /** @param {{tickIndex?:number, acidOn?:boolean, autoOn?:boolean, quiet?:boolean}=} context */
+  onTick(context = {}) {
+    const tickIndex = Number.isFinite(context.tickIndex) ? context.tickIndex : this.tickIndex;
+    const recipe = this.getRecipe();
+    const recipeHash = hashString(recipe.id);
+    const events = [];
+    const maxDensity = recipe.transitionRules.maxDensity;
+    const effectiveDensity = Math.min(maxDensity, this.config.faderB);
+    const autoShape = context.autoOn ? this.getAutoVariation(recipe, tickIndex) : null;
+    const density = clamp01(effectiveDensity + (autoShape?.densityDelta ?? 0));
+    const energy = clamp01(this.config.faderA + (autoShape?.energyDelta ?? 0));
+    const nature = clamp01(this.config.faderC + (autoShape?.natureDelta ?? 0));
+
+    recipe.layers.forEach((layer) => {
+      if (tickIndex % layer.every !== 0) return;
+
+      const chance = clamp01(
+        layer.probability +
+          density * (layer.densityWeight ?? 0) +
+          energy * (layer.energyWeight ?? 0) +
+          nature * (layer.natureWeight ?? 0)
+      );
+
+      if (randomAt(this.config.seed + recipeHash, tickIndex, layer.id) > chance) return;
+      events.push(this.buildEvent(layer, tickIndex, { density, energy, nature }));
+    });
+
+    if (context.acidOn && recipe.id !== "music-edge") {
+      events.push(...this.buildAcidOverlay(tickIndex, { density, energy, nature }));
+    }
+
+    this.tickIndex = tickIndex + 1;
+    return events.filter(Boolean);
+  }
+
+  applyFaderState(a, b, c) {
+    this.config.faderA = clamp01(Number(a));
+    this.config.faderB = clamp01(Number(b));
+    this.config.faderC = clamp01(Number(c));
+    this.config.mood = this.manualMood ?? inferMoodFromFaders(this.config.faderA, this.config.faderB, this.config.faderC);
+    this.config.mode = this.config.mood === "edge" ? "edge" : this.getRecipe().mode;
+    this.lastFaderChangeAt = performance.now();
+    persistConfig(this.config);
+    return { ...this.config };
+  }
+
+  setSeed(seed) {
+    this.config.seed = normalizeSeed(seed);
+    this.tickIndex = 0;
+    persistConfig(this.config);
+    return this.config.seed;
+  }
+
+  setMood(profile) {
+    if (!MOODS.includes(profile)) return { ...this.config };
+    this.manualMood = profile;
+    this.config.mood = profile;
+    this.config.mode = profile === "edge" ? "edge" : "ambient";
+    persistConfig(this.config);
+    return { ...this.config };
+  }
+
+  setReference(ref) {
+    if (!this.recipes[ref]) return { ...this.config };
+    const recipe = this.recipes[ref];
+    this.config.referenceId = ref;
+    this.config.mode = recipe.mode;
+    this.config.mood = this.manualMood ?? inferMoodFromFaders(this.config.faderA, this.config.faderB, this.config.faderC);
+    this.tickIndex = 0;
+    persistConfig(this.config);
+    return { ...this.config };
+  }
+
+  getRecipe() {
+    return this.recipes[this.config.referenceId] ?? this.recipes[DEFAULT_CONFIG.referenceId];
+  }
+
+  getAutoVariation(recipe, tickIndex) {
+    const variation = chooseAt(recipe.variations, this.config.seed, Math.floor(tickIndex / 16), "auto-variation");
+    if (!variation) return null;
+    const chance = variation.chance * (0.6 + this.config.faderC * 0.5);
+    return randomAt(this.config.seed, tickIndex, variation.id) < chance ? variation : null;
+  }
+
+  buildEvent(layer, tickIndex, shape) {
+    const noteChoice = Array.isArray(layer.notes)
+      ? chooseAt(layer.notes, this.config.seed, tickIndex, `${layer.id}:notes`)
+      : undefined;
+    const duration = Array.isArray(layer.duration)
+      ? chooseAt(layer.duration, this.config.seed, tickIndex, `${layer.id}:duration`)
+      : layer.duration ?? "16n";
+
+    return {
+      type: layer.type,
+      id: layer.id,
+      notes: noteChoice,
+      duration,
+      velocity: clamp01((layer.velocity ?? 0.3) + shape.energy * 0.16),
+      filterHz: layer.filterBase ? layer.filterBase + shape.energy * (layer.filterRange ?? 0) : undefined,
+      offset: 0,
+    };
+  }
+
+  buildAcidOverlay(tickIndex, shape) {
+    if (tickIndex % 2 !== 0) return [];
+    const events = [];
+    const pulseChance = clamp01(0.28 + shape.energy * 0.28 + shape.density * 0.18);
+    const noteChance = clamp01(0.2 + shape.density * 0.44);
+
+    if (tickIndex % 4 === 0 && randomAt(this.config.seed, tickIndex, "acid-kick") < pulseChance) {
+      events.push({ type: "kick", id: "acid-kick", duration: "8n", velocity: 0.38 + shape.energy * 0.22, offset: 0 });
+    }
+
+    if (randomAt(this.config.seed, tickIndex, "acid-note") < noteChance) {
+      events.push({
+        type: "bass",
+        id: "acid-note",
+        notes: chooseAt(["C2", "C2", "G1", "A#1", "D2"], this.config.seed, tickIndex, "acid-note-pitch"),
+        duration: "16n",
+        velocity: 0.32 + shape.energy * 0.22,
+        filterHz: 420 + shape.energy * 1600,
+        offset: 0,
+      });
+    }
+
+    if (randomAt(this.config.seed, tickIndex, "acid-hat") < 0.18 + shape.nature * 0.32) {
+      events.push({ type: "hat", id: "acid-hat", duration: "16n", velocity: 0.12 + shape.density * 0.15, offset: 0 });
+    }
+
+    return events;
+  }
+}
+
+//------------------------------------------------------
+// Canvas renderer
+//------------------------------------------------------
+
 const canvas = document.getElementById("bg");
 const ctx = canvas.getContext("2d");
 
@@ -15,311 +549,430 @@ function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
+
 resize();
 window.addEventListener("resize", resize);
 
-// 軽量 24fps 描画
-let last = 0;
+let lastDrawAt = 0;
 function draw(t) {
-  if (t - last < 1000 / 24) {
+  if (t - lastDrawAt < 1000 / 24) {
     requestAnimationFrame(draw);
     return;
   }
-  last = t;
+  lastDrawAt = t;
 
+  const { faderA, faderB, faderC, mood } = generator.config;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
-  const rings = 10 + Math.floor(6 * creationVal);
-  const baseR = Math.min(cx, cy) * 0.33;
-  const drift = Math.sin(t * 0.00035) * (30 + 25 * natureVal);
+  const rings = 9 + Math.floor(7 * faderB);
+  const baseR = Math.min(cx, cy) * (0.27 + faderC * 0.08);
+  const drift = Math.sin(t * 0.00035) * (28 + 34 * faderC);
+  const hue = mood === "edge" ? 38 : mood === "drift" ? 172 : mood === "calm" ? 198 : 112;
 
-  for (let i = 0; i < rings; i++) {
-    const r = baseR + i * 20 + drift * Math.sin(i * 0.6);
+  for (let i = 0; i < rings; i += 1) {
+    const r = baseR + i * (16 + faderB * 9) + drift * Math.sin(i * 0.6);
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(120,180,255,${
-      0.12 + energyVal * 0.15
-    })`;
-    ctx.lineWidth = 0.7;
+    ctx.strokeStyle = `hsla(${hue + i * 4}, 78%, 66%, ${0.1 + faderA * 0.18})`;
+    ctx.lineWidth = 0.7 + faderA * 0.6;
     ctx.stroke();
   }
 
   requestAnimationFrame(draw);
 }
-requestAnimationFrame(draw);
 
 //------------------------------------------------------
-// Tone.js 音響パイプライン
+// Tone.js audio graph: oscillator/noise only, no samples
 //------------------------------------------------------
+
 Tone.Transport.bpm.value = 82;
 Tone.Transport.swing = 0.12;
 
-// 全体ゲイン
-const master = new Tone.Gain(0.9).toDestination();
+const limiter = new Tone.Limiter(-1).toDestination();
+const master = new Tone.Gain(0.82).connect(limiter);
 
-// Piano（Salamander）
-const piano = new Tone.Sampler({
-  urls: {
-    A3: "A3.mp3",
-    C4: "C4.mp3",
-    "D#4": "Ds4.mp3",
-    "F#4": "Fs4.mp3",
-    A4: "A4.mp3",
-  },
-  baseUrl: "https://tonejs.github.io/audio/salamander/",
-  release: 2.0,
-}).connect(master);
+const leadFilter = new Tone.Filter(1400, "lowpass");
+const lead = new Tone.PolySynth(Tone.Synth, {
+  oscillator: { type: "triangle" },
+  envelope: { attack: 0.03, decay: 0.24, sustain: 0.16, release: 1.3 },
+}).chain(leadFilter, master);
 
-// Pad（コード / フィルタ / リバーブ）
 const padFilter = new Tone.Filter(900, "lowpass");
-const padVerb = new Tone.Reverb(3);
-padVerb.wet.value = 0.4;
-
+const padVerb = new Tone.Reverb(3.2);
+padVerb.wet.value = 0.42;
 const pad = new Tone.PolySynth(Tone.Synth, {
   oscillator: { type: "sine" },
-  envelope: { attack: 1.2, release: 3 },
+  envelope: { attack: 1.1, decay: 0.2, sustain: 0.82, release: 3.4 },
 }).chain(padFilter, padVerb, master);
 
-// Acid Bass（303っぽい）
 const bass = new Tone.MonoSynth({
   oscillator: { type: "sawtooth" },
   filter: { type: "lowpass", rolloff: -24 },
-  envelope: {
-    attack: 0.01,
-    decay: 0.18,
-    sustain: 0.1,
-    release: 0.25,
-  },
-  filterEnvelope: {
-    attack: 0.01,
-    decay: 0.2,
-    sustain: 0.1,
-    release: 0.2,
-  },
-});
-const bassGain = new Tone.Gain(0.65).connect(master);
-bass.connect(bassGain);
+  envelope: { attack: 0.01, decay: 0.18, sustain: 0.12, release: 0.25 },
+  filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.12, release: 0.22 },
+}).connect(master);
 
-// Kick / Hat
 const kick = new Tone.MembraneSynth({
   pitchDecay: 0.008,
   octaves: 3,
-  envelope: {
-    attack: 0.001,
-    decay: 0.25,
-    sustain: 0,
-  },
+  envelope: { attack: 0.001, decay: 0.25, sustain: 0 },
 }).connect(master);
 
 const hat = new Tone.NoiseSynth({
-  envelope: {
-    attack: 0.001,
-    decay: 0.07,
-  },
+  noise: { type: "white" },
+  envelope: { attack: 0.001, decay: 0.07, sustain: 0 },
 }).connect(master);
 
+const air = new Tone.NoiseSynth({
+  noise: { type: "pink" },
+  envelope: { attack: 0.01, decay: 0.18, sustain: 0 },
+}).connect(master);
+
+//------------------------------------------------------
+// Runtime state, guard rail, adapter
+//------------------------------------------------------
+
+const runtimeHealth = {
+  quiet: false,
+  lateTicks: 0,
+  lastTickAt: 0,
+  recoverAt: 0,
+  lastScheduleResult: null,
+};
+
+const ui = {
+  startBtn: document.getElementById("startBtn"),
+  stopBtn: document.getElementById("stopBtn"),
+  acidBtn: document.getElementById("acidBtn"),
+  autoBtn: document.getElementById("autoBtn"),
+  seedBtn: document.getElementById("seedBtn"),
+  energy: document.getElementById("energy"),
+  creation: document.getElementById("creation"),
+  nature: document.getElementById("nature"),
+  referenceSelect: document.getElementById("referenceSelect"),
+  seedLabel: document.getElementById("seedLabel"),
+  moodLabel: document.getElementById("moodLabel"),
+  modeLabel: document.getElementById("modeLabel"),
+  guardLabel: document.getElementById("guardLabel"),
+};
+
+const generator = new ChillGenerator(loadConfig(), CHILL_RECIPES);
 let acidOn = false;
-
-//------------------------------------------------------
-// Loops（ピアノ右手 / 左手 / Pad / Acid）
-//------------------------------------------------------
-
-// ピアノ右手：美メロ（C Lydian / Pentatonic ミックス感）
-const scale = [
-  "C4",
-  "D4",
-  "E4",
-  "G4",
-  "A4",
-  "C5",
-  "D5",
-  "E5",
-  "G5",
-];
-
-const melodyLoop = new Tone.Loop((time) => {
-  if (Math.random() < 0.25 + energyVal * 0.6) {
-    const note =
-      scale[Math.floor(Math.random() * scale.length)];
-    const durOptions = ["16n", "8n", "8t", "4n"];
-    const dur =
-      durOptions[Math.floor(Math.random() * durOptions.length)];
-    piano.triggerAttackRelease(note, dur, time);
-  }
-}, "16n");
-
-// ピアノ左手：ベース循環（Natureで周期変化）
-const bassNotes = ["C2", "G2", "D2", "E2"];
-let bi = 0;
-
-const leftLoop = new Tone.Loop(
-  (time) => {
-    const note = bassNotes[bi % bassNotes.length];
-    piano.triggerAttackRelease(note, "2n", time);
-    bi++;
-  },
-  () => (natureVal < 0.5 ? "2m" : "1m")
-);
-
-// Pad コード循環（Energyで明るさ変化）
-const chords = [
-  ["C4", "E4", "G4", "B4"], // Cmaj7
-  ["A3", "E4", "A4", "C5"], // Am9
-  ["F4", "A4", "C5", "E5"], // Fmaj7(#11)風
-  ["G3", "D4", "G4", "A4"], // Gadd9
-];
-let ci = 0;
-
-const padLoop = new Tone.Loop((time) => {
-  padFilter.frequency.rampTo(700 + energyVal * 1200, 2);
-  pad.triggerAttackRelease(chords[ci], "2m", time);
-  ci = (ci + 1) % chords.length;
-}, "2m");
-
-// Acid ループ
-const acidLoop = new Tone.Loop((time) => {
-  if (!acidOn) return;
-
-  kick.triggerAttackRelease("C1", "8n", time);
-
-  const pat = [0, 0.25, 0.5, 0.75];
-  pat.forEach((p) => {
-    if (Math.random() < 0.45 + creationVal * 0.5) {
-      bass.triggerAttackRelease("C2", "16n", time + p);
-    }
-  });
-
-  if (Math.random() < 0.35 + natureVal * 0.4) {
-    hat.triggerAttackRelease("16n", time + 0.5);
-  }
-}, "1n");
-
-//------------------------------------------------------
-// Auto Drift（BPM & フェーダー）
-//------------------------------------------------------
 let autoOn = false;
-
-function autoTick() {
-  if (!autoOn) return;
-
-  const next = 82 + (Math.random() * 4 - 2) * natureVal;
-  Tone.Transport.bpm.rampTo(next, 6);
-
-  creationVal = Math.min(
-    1,
-    Math.max(0, creationVal + (Math.random() * 0.07 - 0.035))
-  );
-  natureVal = Math.min(
-    1,
-    Math.max(0, natureVal + (Math.random() * 0.07 - 0.035))
-  );
-
-  document.getElementById("creation").value = creationVal;
-  document.getElementById("nature").value = natureVal;
-
-  setTimeout(autoTick, 7000);
-}
-
-//------------------------------------------------------
-// UI Events（iPhone Touch Unlock 強化版）
-//------------------------------------------------------
 let busy = false;
 let started = false;
+let transportStep = 0;
+let autoStep = 0;
+let autoTimer = null;
 
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const acidBtn = document.getElementById("acidBtn");
-const autoBtn = document.getElementById("autoBtn");
+function recordRuntimeError(reason, error) {
+  const entry = {
+    reason,
+    message: error?.message ?? String(error),
+    at: new Date().toISOString(),
+  };
+  const log = safeJsonRead("chill:runtime-errors:v1", []);
+  log.unshift(entry);
+  safeJsonWrite("chill:runtime-errors:v1", log.slice(0, 8));
+  console.warn("chill guard", entry);
+}
 
-// グローバル Unlock フック
+function enterQuietMode(reason) {
+  if (!runtimeHealth.quiet) {
+    recordRuntimeError(reason, new Error(reason));
+  }
+  runtimeHealth.quiet = true;
+  runtimeHealth.recoverAt = performance.now() + 3200;
+  master.gain.rampTo(0.04, 0.35);
+  updateUi();
+}
+
+function maybeRecoverFromQuiet() {
+  if (!runtimeHealth.quiet || performance.now() < runtimeHealth.recoverAt) return;
+  runtimeHealth.quiet = false;
+  runtimeHealth.lateTicks = 0;
+  master.gain.rampTo(0.82, 0.8);
+  updateUi();
+}
+
+function watchRuntimeLoad() {
+  const now = performance.now();
+  if (runtimeHealth.lastTickAt > 0 && now - runtimeHealth.lastTickAt > 1000) {
+    runtimeHealth.lateTicks += 1;
+  } else {
+    runtimeHealth.lateTicks = Math.max(0, runtimeHealth.lateTicks - 1);
+  }
+  runtimeHealth.lastTickAt = now;
+
+  const recipe = generator.getRecipe();
+  if (runtimeHealth.lateTicks >= recipe.transitionRules.quietOnLateTicks) {
+    enterQuietMode("late tick guard");
+  }
+
+  if (performance.memory) {
+    const usedRatio = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
+    if (usedRatio > 0.85) enterQuietMode("memory pressure guard");
+  }
+}
+
+function scheduleEvent(event, time = Tone.now()) {
+  if (runtimeHealth.quiet && event.type !== "air") {
+    const result = {
+      executed: false,
+      fallback: "quiet-mode",
+      reason: "guard-active",
+      eventType: event.type,
+    };
+    runtimeHealth.lastScheduleResult = result;
+    return result;
+  }
+
+  try {
+    const velocity = clamp01(event.velocity ?? 0.3);
+    if (event.filterHz) {
+      leadFilter.frequency.setValueAtTime(event.filterHz, time);
+      padFilter.frequency.setValueAtTime(event.filterHz, time);
+      bass.filter.frequency.setValueAtTime(event.filterHz, time);
+    }
+
+    if (event.type === "lead" && event.notes) {
+      lead.triggerAttackRelease(event.notes, event.duration, time + event.offset, velocity);
+    } else if (event.type === "pad" && event.notes) {
+      pad.triggerAttackRelease(event.notes, event.duration, time + event.offset, velocity);
+    } else if (event.type === "bass" && event.notes) {
+      bass.triggerAttackRelease(event.notes, event.duration, time + event.offset, velocity);
+    } else if (event.type === "kick") {
+      kick.triggerAttackRelease("C1", event.duration ?? "8n", time + event.offset, velocity);
+    } else if (event.type === "hat") {
+      hat.triggerAttackRelease(event.duration ?? "16n", time + event.offset, velocity);
+    } else if (event.type === "air") {
+      air.triggerAttackRelease(event.duration ?? "16n", time + event.offset, velocity);
+    }
+
+    const result = {
+      executed: true,
+      fallback: null,
+      reason: "scheduled",
+      eventType: event.type,
+    };
+    runtimeHealth.lastScheduleResult = result;
+    return result;
+  } catch (error) {
+    recordRuntimeError(`schedule:${event.type}`, error);
+    enterQuietMode(`schedule fallback:${event.type}`);
+    try {
+      air.triggerAttackRelease("16n", time, 0.05);
+      const result = {
+        executed: false,
+        fallback: "air",
+        reason: error.message,
+        eventType: event.type,
+      };
+      runtimeHealth.lastScheduleResult = result;
+      return result;
+    } catch (fallbackError) {
+      recordRuntimeError("schedule:fallback-air", fallbackError);
+      const result = {
+        executed: false,
+        fallback: "mute",
+        reason: fallbackError.message,
+        eventType: event.type,
+      };
+      runtimeHealth.lastScheduleResult = result;
+      return result;
+    }
+  }
+}
+
+const chillAdapter = {
+  STORAGE_KEYS,
+  recipes: CHILL_RECIPES,
+  intentToFaders,
+  schedule: scheduleEvent,
+  getRuntimeConfig: () => ({ ...generator.config }),
+  setIntent(intent) {
+    const faders = intentToFaders(intent);
+    generator.applyFaderState(faders.faderA, faders.faderB, faders.faderC);
+    if (intent.mood) generator.setMood(intent.mood);
+    syncControlsFromConfig();
+    updateUi();
+    return { ...generator.config };
+  },
+  setReference(ref) {
+    const next = generator.setReference(ref);
+    syncControlsFromConfig();
+    updateUi();
+    return next;
+  },
+};
+
+window.ChillGenerator = ChillGenerator;
+window.chillAdapter = chillAdapter;
+window.chillRuntime = {
+  generator,
+  adapter: chillAdapter,
+  STORAGE_KEYS,
+};
+
+//------------------------------------------------------
+// Transport and UI
+//------------------------------------------------------
+
+const mainLoop = new Tone.Loop((time) => {
+  maybeRecoverFromQuiet();
+  watchRuntimeLoad();
+  const events = generator.onTick({
+    tickIndex: transportStep,
+    acidOn,
+    autoOn,
+    quiet: runtimeHealth.quiet,
+  });
+  events.forEach((event) => scheduleEvent(event, time));
+  transportStep += 1;
+}, "16n");
+
+function syncControlsFromConfig() {
+  ui.energy.value = generator.config.faderA;
+  ui.creation.value = generator.config.faderB;
+  ui.nature.value = generator.config.faderC;
+  ui.referenceSelect.value = generator.config.referenceId;
+}
+
+function updateUi() {
+  ui.seedLabel.textContent = `Seed ${generator.config.seed}`;
+  ui.moodLabel.textContent = generator.config.mood;
+  ui.modeLabel.textContent = acidOn ? "edge" : generator.config.mode;
+  ui.guardLabel.textContent = runtimeHealth.quiet ? "quiet" : "stable";
+  ui.acidBtn.classList.toggle("is-active", acidOn);
+  ui.autoBtn.classList.toggle("is-active", autoOn);
+  ui.startBtn.classList.toggle("is-active", Tone.Transport.state === "started");
+}
+
+function applyFadersFromUi() {
+  generator.applyFaderState(
+    parseFloat(ui.energy.value),
+    parseFloat(ui.creation.value),
+    parseFloat(ui.nature.value)
+  );
+  updateUi();
+}
+
+function applyReferenceDefaults(recipe) {
+  const a = generator.config.faderA * 0.62 + recipe.defaultFaders.faderA * 0.38;
+  const b = generator.config.faderB * 0.62 + recipe.defaultFaders.faderB * 0.38;
+  const c = generator.config.faderC * 0.62 + recipe.defaultFaders.faderC * 0.38;
+  generator.applyFaderState(a, b, c);
+  syncControlsFromConfig();
+}
+
+function startAutoDrift() {
+  window.clearTimeout(autoTimer);
+  if (!autoOn) return;
+
+  const recipe = generator.getRecipe();
+  const target = recipe.defaultFaders;
+  const jitterA = (randomAt(generator.config.seed, autoStep, "auto-a") - 0.5) * 0.06;
+  const jitterB = (randomAt(generator.config.seed, autoStep, "auto-b") - 0.5) * 0.07;
+  const jitterC = (randomAt(generator.config.seed, autoStep, "auto-c") - 0.5) * 0.05;
+  const edgeMix = randomAt(generator.config.seed, autoStep, "auto-edge") < 0.22 ? 0.035 : 0;
+
+  const nextA = generator.config.faderA + (target.faderA - generator.config.faderA) * 0.08 + jitterA + edgeMix;
+  const nextB = generator.config.faderB + (target.faderB - generator.config.faderB) * 0.08 + jitterB + edgeMix;
+  const nextC = generator.config.faderC + (target.faderC - generator.config.faderC) * 0.1 + jitterC;
+  generator.applyFaderState(nextA, nextB, nextC);
+  syncControlsFromConfig();
+
+  const bpm = 82 + (generator.config.faderA - 0.5) * 8 + (generator.config.faderC - 0.5) * 3;
+  Tone.Transport.bpm.rampTo(Math.max(68, Math.min(104, bpm)), 6);
+  autoStep += 1;
+  updateUi();
+  autoTimer = window.setTimeout(startAutoDrift, 7000);
+}
+
 function installGlobalUnlock() {
   const handler = async () => {
     try {
       await Tone.start();
-    } catch (e) {
-      console.warn("Global unlock failed", e);
+    } catch (error) {
+      recordRuntimeError("global unlock failed", error);
     } finally {
-      document.documentElement.removeEventListener(
-        "touchend",
-        handler
-      );
-      document.documentElement.removeEventListener(
-        "click",
-        handler
-      );
+      document.documentElement.removeEventListener("touchend", handler);
+      document.documentElement.removeEventListener("click", handler);
     }
   };
 
-  document.documentElement.addEventListener("touchend", handler, {
-    once: true,
-  });
-  document.documentElement.addEventListener("click", handler, {
-    once: true,
-  });
+  document.documentElement.addEventListener("touchend", handler, { once: true });
+  document.documentElement.addEventListener("click", handler, { once: true });
 }
 
-installGlobalUnlock();
-
-// START
-startBtn.onclick = async () => {
+ui.startBtn.onclick = async () => {
   if (busy) return;
   busy = true;
-  setTimeout(() => {
+  window.setTimeout(() => {
     busy = false;
   }, 250);
 
   try {
-    // iOS Safari: WebAudio 解禁
     await Tone.start();
 
-    // ピアノサンプル読み込み完了まで待つ（無音防止）
-    await piano.loaded;
-
     if (!started) {
+      transportStep = 0;
       Tone.Transport.position = 0;
-      melodyLoop.start(0);
-      leftLoop.start(0);
-      padLoop.start(0);
-      acidLoop.start(0);
+      mainLoop.start(0);
       started = true;
     }
 
     Tone.Transport.start("+0.05");
-    startBtn.textContent = "▶ PLAYING";
-  } catch (e) {
-    console.warn(e);
-    alert(
+    updateUi();
+  } catch (error) {
+    recordRuntimeError("audio start failed", error);
+    enterQuietMode("audio start failed");
+    window.alert(
       "iPhone がオーディオをブロックしました。\n画面を一度タップしてから、もう一度 START を押してください。"
     );
   }
 };
 
-// STOP
-stopBtn.onclick = () => {
+ui.stopBtn.onclick = () => {
   Tone.Transport.stop();
-  startBtn.textContent = "▶ START";
+  updateUi();
 };
 
-// ACID TOGGLE
-acidBtn.onclick = () => {
+ui.acidBtn.onclick = () => {
   acidOn = !acidOn;
+  generator.config.mode = acidOn ? "edge" : generator.getRecipe().mode;
+  persistConfig(generator.config);
+  updateUi();
 };
 
-// AUTO TOGGLE
-autoBtn.onclick = () => {
+ui.autoBtn.onclick = () => {
   autoOn = !autoOn;
-  if (autoOn) autoTick();
+  startAutoDrift();
+  updateUi();
 };
 
-// Sliders -> 値をリアルタイム反映
-document.getElementById("energy").oninput = (e) => {
-  energyVal = parseFloat(e.target.value);
+ui.seedBtn.onclick = () => {
+  const next = Math.floor(Date.now() % 2147483647);
+  generator.setSeed(next);
+  transportStep = 0;
+  updateUi();
 };
-document.getElementById("creation").oninput = (e) => {
-  creationVal = parseFloat(e.target.value);
+
+ui.referenceSelect.onchange = (event) => {
+  const ref = event.target.value;
+  generator.setReference(ref);
+  applyReferenceDefaults(generator.getRecipe());
+  updateUi();
 };
-document.getElementById("nature").oninput = (e) => {
-  natureVal = parseFloat(e.target.value);
-};
+
+[ui.energy, ui.creation, ui.nature].forEach((input) => {
+  input.oninput = applyFadersFromUi;
+});
+
+syncControlsFromConfig();
+persistConfig(generator.config);
+installGlobalUnlock();
+requestAnimationFrame(draw);
+updateUi();

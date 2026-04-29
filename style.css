@@ -6,7 +6,6 @@ body {
   color: #dff2ff;
 }
 
-/* Canvas */
 #bg {
   position: fixed;
   inset: 0;
@@ -14,20 +13,20 @@ body {
   height: 100vh;
 }
 
-/* Panel */
 .panel {
   position: fixed;
   top: 18px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  width: min(92vw, 360px);
+  width: min(92vw, 380px);
   padding: 16px 18px;
   background: rgba(255, 255, 255, 0.07);
   border-radius: 18px;
   backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   text-align: center;
+  box-sizing: border-box;
 }
 
 .panel h1 {
@@ -42,17 +41,21 @@ body {
   opacity: 0.65;
 }
 
-/* Buttons */
-.controls {
+.controls,
+.reference-row,
+.runtime-status {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
 }
 
-.controls button {
-  width: 47%;
-  margin: 6px 1%;
-  padding: 14px 0;
-  font-size: 16px;
+.controls button,
+.reference-row button,
+.reference-row select {
+  flex: 1;
+  min-width: 0;
+  margin: 6px 0;
+  padding: 13px 8px;
+  font-size: 14px;
   font-weight: 600;
   color: #eaf6ff;
   background: rgba(100, 160, 255, 0.28);
@@ -64,11 +67,17 @@ body {
     inset 0 0 4px rgba(255, 255, 255, 0.15);
 }
 
-.controls button:active {
+.reference-row select {
+  appearance: none;
+  background: rgba(18, 36, 54, 0.86);
+}
+
+.controls button:active,
+.reference-row button:active,
+.controls button.is-active {
   background: rgba(140, 190, 255, 0.5);
 }
 
-/* Sliders */
 .faders label {
   display: block;
   margin-top: 12px;
@@ -80,14 +89,35 @@ input[type="range"] {
   height: 28px;
 }
 
-/* Mode hint */
-.modes-hint {
+.runtime-status {
+  flex-wrap: wrap;
+  justify-content: center;
   margin-top: 12px;
   font-size: 11px;
-  opacity: 0.6;
+  opacity: 0.72;
 }
 
-/* iOS tap UX */
-button {
+.runtime-status span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+button,
+select {
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 420px) {
+  .panel {
+    top: 12px;
+    padding: 14px;
+  }
+
+  .controls button,
+  .reference-row button,
+  .reference-row select {
+    font-size: 13px;
+    padding: 12px 6px;
+  }
 }

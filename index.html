@@ -2,13 +2,13 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>Chill v2.3 — Cyber-Zen Pro</title>
+    <title>Chill v3.0 — Reference Rig</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <link rel="stylesheet" href="./style.css" />
-    <!-- Tone.js CDN (14.7.77 安定版) -->
+    <!-- Tone.js CDN (14.7.77 stable, existing dependency only) -->
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
   </head>
   <body>
@@ -16,8 +16,8 @@
 
     <div class="panel">
       <h1>
-        Chill v2.3
-        <span>Cyber-Zen Pro</span>
+        Chill v3.0
+        <span>Reference Rig</span>
       </h1>
 
       <div class="controls">
@@ -28,6 +28,15 @@
       <div class="controls">
         <button id="acidBtn">⟡ ACID</button>
         <button id="autoBtn">∞ AUTO</button>
+      </div>
+
+      <div class="reference-row">
+        <select id="referenceSelect" aria-label="Reference">
+          <option value="namima-ambient">namima ambient</option>
+          <option value="music-edge">Music edge</option>
+          <option value="drum-floor-drift">drum-floor drift</option>
+        </select>
+        <button id="seedBtn">NEW SEED</button>
       </div>
 
       <div class="faders">
@@ -66,8 +75,11 @@
         </label>
       </div>
 
-      <div class="modes-hint">
-        Chill ・ Acid ・ Techno ・ Ambient
+      <div class="runtime-status" aria-live="polite">
+        <span id="seedLabel">Seed</span>
+        <span id="moodLabel">glow</span>
+        <span id="modeLabel">ambient</span>
+        <span id="guardLabel">stable</span>
       </div>
     </div>
 

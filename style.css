@@ -1,9 +1,24 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: #0d0f0d;
-  font-family: "Inter", "Hiragino Sans", sans-serif;
-  color: #f4ead6;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(163, 129, 83, 0.22), transparent 34%),
+    radial-gradient(circle at 78% 76%, rgba(63, 84, 72, 0.28), transparent 42%),
+    linear-gradient(145deg, #10100d 0%, #17140f 48%, #080908 100%);
+  font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif;
+  color: #f7ecd8;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 244, 218, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 244, 218, 0.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 0%, transparent 74%);
 }
 
 #bg {
@@ -11,34 +26,64 @@ body {
   inset: 0;
   width: 100vw;
   height: 100vh;
+  opacity: 0.84;
 }
 
 .panel {
   position: fixed;
-  top: 18px;
+  bottom: max(18px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  width: min(92vw, 380px);
-  padding: 16px 18px;
-  background: rgba(34, 37, 31, 0.72);
-  border-radius: 18px;
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(235, 210, 160, 0.18);
+  width: min(92vw, 430px);
+  padding: 18px 20px;
+  background: rgba(24, 23, 18, 0.76);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(235, 210, 160, 0.2);
   text-align: center;
   box-sizing: border-box;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0 12%, rgba(255, 238, 196, 0.04) 12% 12.6%, transparent 12.6% 25%),
+    radial-gradient(circle at 50% 0%, rgba(255, 228, 178, 0.16), transparent 44%);
+  opacity: 0.7;
 }
 
 .panel h1 {
-  font-size: 22px;
-  margin: 0 0 12px 0;
-  font-weight: 300;
+  font-size: 24px;
+  margin: 0 0 6px 0;
+  font-weight: 400;
+  letter-spacing: 0.03em;
 }
 
 .panel h1 span {
   display: block;
-  font-size: 13px;
-  opacity: 0.65;
+  font-size: 12px;
+  opacity: 0.62;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.listening-note,
+.mode-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.72;
+}
+
+.mode-note {
+  margin: 2px 0 10px;
+  color: #d8c8ad;
 }
 
 .controls,
@@ -55,38 +100,68 @@ body {
   min-width: 0;
   margin: 6px 0;
   padding: 13px 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   color: #fff7e8;
-  background: rgba(139, 118, 78, 0.38);
-  border: none;
-  border-radius: 10px;
+  background: rgba(105, 86, 58, 0.42);
+  border: 1px solid rgba(245, 222, 178, 0.12);
+  border-radius: 14px;
   cursor: pointer;
-  text-shadow: 0 0 5px rgba(235, 210, 160, 0.45);
-  box-shadow: 0 0 6px rgba(140, 182, 150, 0.32),
-    inset 0 0 4px rgba(255, 255, 255, 0.15);
+  text-shadow: 0 0 12px rgba(235, 210, 160, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
 }
 
 .reference-row select {
   appearance: none;
-  background: rgba(28, 39, 34, 0.9);
+  background: rgba(22, 28, 24, 0.9);
 }
 
 .controls button:active,
 .reference-row button:active,
 .controls button.is-active {
-  background: rgba(140, 182, 150, 0.52);
+  background: rgba(143, 119, 78, 0.72);
+}
+
+.controls button:hover,
+.reference-row button:hover,
+.reference-row select:hover {
+  border-color: rgba(245, 222, 178, 0.32);
+  transform: translateY(-1px);
+}
+
+button:focus-visible,
+select:focus-visible,
+input[type="range"]:focus-visible {
+  outline: 2px solid rgba(226, 190, 120, 0.75);
+  outline-offset: 3px;
 }
 
 .faders label {
   display: block;
   margin-top: 12px;
   font-size: 13px;
+  text-align: left;
+}
+
+.fader-name {
+  display: inline-block;
+  min-width: 58px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.fader-hint {
+  opacity: 0.54;
+  font-size: 11px;
 }
 
 input[type="range"] {
   width: 100%;
   height: 28px;
+  accent-color: #caa66a;
 }
 
 .runtime-status {
@@ -100,7 +175,8 @@ input[type="range"] {
 .runtime-status span {
   padding: 4px 7px;
   border-radius: 999px;
-  background: rgba(235, 210, 160, 0.1);
+  background: rgba(235, 210, 160, 0.12);
+  border: 1px solid rgba(235, 210, 160, 0.1);
 }
 
 button,
@@ -110,8 +186,7 @@ select {
 
 @media (max-width: 420px) {
   .panel {
-    top: 12px;
-    padding: 14px;
+    padding: 15px;
   }
 
   .controls button,

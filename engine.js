@@ -487,12 +487,13 @@ class ChillGenerator {
     this.lastFaderChangeAt = performance.now();
   }
 
-  /** @param {{tickIndex?:number, acidOn?:boolean, autoOn?:boolean, quiet?:boolean}=} context */
+  /** @param {{tickIndex?:number, grooveOn?:boolean, autoOn?:boolean, quiet?:boolean}=} context */
   onTick(context = {}) {
     const tickIndex = Number.isFinite(context.tickIndex) ? context.tickIndex : this.tickIndex;
     const recipe = this.getRecipe();
     const recipeHash = hashString(recipe.id);
     const events = [];
+    const grooveActive = Boolean(context.grooveOn);
     const maxDensity = recipe.transitionRules.maxDensity;
     const effectiveDensity = Math.min(maxDensity, this.config.faderB);
     const autoShape = context.autoOn ? this.getAutoVariation(recipe, tickIndex) : null;
@@ -517,7 +518,7 @@ class ChillGenerator {
       events.push(this.buildEvent(layer, tickIndex, { density, energy, nature }));
     });
 
-    if (context.acidOn) {
+    if (grooveActive) {
       events.push(...this.buildPulseOverlay(tickIndex, { density, energy, nature }));
     }
 
@@ -759,7 +760,7 @@ const ui = {
 };
 
 const generator = new ChillGenerator(loadConfig(), CHILL_RECIPES);
-let acidOn = false;
+let grooveOn = false;
 let autoOn = false;
 let busy = false;
 let started = false;
@@ -889,11 +890,83 @@ function scheduleEvent(event, time = Tone.now()) {
   }
 }
 
+function buildPreviewConfig(options = {}) {
+  const referenceId = CHILL_RECIPES[options.referenceId]
+    ? options.referenceId
+    : DEFAULT_CONFIG.referenceId;
+  const recipe = CHILL_RECIPES[referenceId];
+  return {
+    mode: recipe.mode,
+    seed: normalizeSeed(options.seed ?? generator.config.seed),
+    faderA: clamp01(options.faderA ?? recipe.defaultFaders.faderA),
+    faderB: clamp01(options.faderB ?? recipe.defaultFaders.faderB),
+    faderC: clamp01(options.faderC ?? recipe.defaultFaders.faderC),
+    mood: MOODS.includes(options.mood) ? options.mood : recipe.mood,
+    referenceId,
+  };
+}
+
+function compactEvent(event, tick) {
+  return {
+    tick,
+    type: event.type,
+    id: event.id,
+    notes: event.notes,
+    duration: event.duration,
+    velocity: Number((event.velocity ?? 0).toFixed(4)),
+    offset: Number((event.offset ?? 0).toFixed(4)),
+  };
+}
+
+function previewEventStream(options = {}) {
+  const bars = Math.max(1, Math.min(64, Math.floor(options.bars ?? 16)));
+  const ticks = bars * 16;
+  const preview = new ChillGenerator(buildPreviewConfig(options), CHILL_RECIPES);
+  const events = [];
+
+  for (let tick = 0; tick < ticks; tick += 1) {
+    preview
+      .onTick({
+        tickIndex: tick,
+        grooveOn: Boolean(options.grooveOn),
+        autoOn: Boolean(options.autoOn),
+        quiet: false,
+      })
+      .forEach((event) => events.push(compactEvent(event, tick)));
+  }
+
+  return {
+    bars,
+    ticks,
+    config: { ...preview.config },
+    eventCount: events.length,
+    fingerprint: hashString(JSON.stringify(events)).toString(16),
+    events,
+  };
+}
+
+function runDeterminismCheck(options = {}) {
+  const first = previewEventStream(options);
+  const second = previewEventStream(options);
+  return {
+    passed: first.fingerprint === second.fingerprint && first.eventCount === second.eventCount,
+    referenceId: first.config.referenceId,
+    seed: first.config.seed,
+    bars: first.bars,
+    eventCount: first.eventCount,
+    fingerprint: first.fingerprint,
+  };
+}
+
 const chillAdapter = {
   STORAGE_KEYS,
   recipes: CHILL_RECIPES,
   intentToFaders,
   schedule: scheduleEvent,
+  diagnostics: {
+    previewEventStream,
+    runDeterminismCheck,
+  },
   getRuntimeConfig: () => ({ ...generator.config }),
   setIntent(intent) {
     const faders = intentToFaders(intent);
@@ -916,6 +989,7 @@ window.chillAdapter = chillAdapter;
 window.chillRuntime = {
   generator,
   adapter: chillAdapter,
+  diagnostics: chillAdapter.diagnostics,
   STORAGE_KEYS,
 };
 
@@ -928,7 +1002,7 @@ const mainLoop = new Tone.Loop((time) => {
   watchRuntimeLoad();
   const events = generator.onTick({
     tickIndex: transportStep,
-    acidOn,
+    grooveOn,
     autoOn,
     quiet: runtimeHealth.quiet,
   });
@@ -946,9 +1020,9 @@ function syncControlsFromConfig() {
 function updateUi() {
   ui.seedLabel.textContent = `Seed ${generator.config.seed}`;
   ui.moodLabel.textContent = generator.config.mood;
-  ui.modeLabel.textContent = acidOn ? "groove" : generator.config.mode;
+  ui.modeLabel.textContent = grooveOn ? "groove" : generator.config.mode;
   ui.guardLabel.textContent = runtimeHealth.quiet ? "quiet" : "stable";
-  ui.acidBtn.classList.toggle("is-active", acidOn);
+  ui.acidBtn.classList.toggle("is-active", grooveOn);
   ui.autoBtn.classList.toggle("is-active", autoOn);
   ui.startBtn.classList.toggle("is-active", Tone.Transport.state === "started");
 }
@@ -1051,7 +1125,7 @@ ui.stopBtn.onclick = () => {
 };
 
 ui.acidBtn.onclick = () => {
-  acidOn = !acidOn;
+  grooveOn = !grooveOn;
   generator.config.mode = generator.getRecipe().mode;
   persistConfig(generator.config);
   updateUi();

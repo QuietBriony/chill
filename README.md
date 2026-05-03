@@ -24,6 +24,7 @@ Primary direction:
 - Listening-first piano jazz chill / lofi ambient radio
 - Safe long-form background listening
 - Warm piano-like tone, jazz voicing, loose hip-hop pulse, soft ambient bed, small mutation
+- Piano is synthetic / felt-like, not sampled.
 - Artist references must be translated into production parameters, never copied as songs, phrases, samples, or grooves
 
 Implemented direction:
@@ -39,9 +40,9 @@ Implemented direction:
 - `Nature`: looseness / room / tape drift / rest
 
 Current recipes:
-- `piano-jazz-chill`
-- `rainy-lofi-room`
-- `soft-solo-drift`
+- `piano-jazz-chill`: quiet room chords, long rests, felt-like synthetic piano
+- `rainy-lofi-room`: transparent add/sus voicing, cool room, low-density pulse
+- `soft-solo-drift`: distant memory piano, rare strange repeats, no aggressive rhythm
 
 Stack separation:
 - `Music`: experimental / edge reference-driven rig
@@ -65,6 +66,7 @@ Fixed storage keys:
 Acceptance gates before intentional reactivation:
 - Same `seed` + same `referenceId` should produce the same event stream for the same fader state.
 - `window.chillAdapter.diagnostics.runDeterminismCheck()` should pass for the default 16-bar preview.
+- Default `piano-jazz-chill` preview should prioritize piano chord events and normally produce no kick/hat unless GROOVE is enabled.
 - Fader changes should affect pulse / voicing / room drift within the next scheduler ticks.
 - Audio errors, late ticks, or memory pressure should enter quiet recovery rather than hard failing.
 - iOS Safari start must stay tied to a user gesture.

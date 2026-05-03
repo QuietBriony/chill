@@ -30,6 +30,10 @@
  * @property {number=} natureWeight
  * @property {number=} humanize
  * @property {number=} swingPush
+ * @property {"felt" | "glass" | "memory"=} tone
+ * @property {number=} rollMs
+ * @property {number=} pedal
+ * @property {number=} room
  * @property {number=} filterBase
  * @property {number=} filterRange
  *
@@ -70,97 +74,85 @@ const CHILL_RECIPES = Object.freeze({
     id: "piano-jazz-chill",
     label: "piano jazz chill",
     mode: "ambient",
-    mood: "glow",
-    bpm: 84,
-    swing: 0.16,
-    defaultFaders: { faderA: 0.54, faderB: 0.42, faderC: 0.66 },
+    mood: "calm",
+    bpm: 66,
+    swing: 0.04,
+    defaultFaders: { faderA: 0.34, faderB: 0.26, faderC: 0.86 },
     layers: [
       {
         id: "room-chord-bed",
-        type: "pad",
+        type: "piano",
         function: "bed",
-        every: 32,
-        probability: 0.96,
-        duration: "2m",
+        tone: "felt",
+        every: 16,
+        probability: 0.84,
+        pattern: [0.98, 0, 0, 0, 0.32, 0, 0, 0, 0.64, 0, 0, 0, 0.24, 0, 0, 0],
+        duration: ["2n", "1m"],
         notes: [
-          ["F3", "A3", "C4", "E4", "G4"],
-          ["E3", "G3", "B3", "D4", "F#4"],
-          ["A2", "E3", "G3", "C4", "D4"],
-          ["D3", "F3", "A3", "C4", "E4"],
+          ["D3", "A3", "C4", "F4"],
+          ["G2", "D3", "F3", "B3"],
+          ["C3", "G3", "B3", "E4"],
+          ["A2", "E3", "G3", "C4"],
         ],
-        velocity: 0.34,
+        velocity: 0.2,
+        densityWeight: -0.06,
         energyWeight: 0.06,
-        natureWeight: 0.14,
-        filterBase: 760,
-        filterRange: 860,
+        natureWeight: 0.18,
+        humanize: 0.026,
+        rollMs: 22,
+        pedal: 0.78,
+        room: 0.72,
+        filterBase: 920,
+        filterRange: 620,
       },
       {
         id: "piano-memory",
         type: "piano",
         function: "memory",
-        every: 2,
-        probability: 0.42,
-        pattern: [0.8, 0.12, 0.34, 0.06, 0.48, 0.16, 0.1, 0.38, 0.22, 0.06, 0.42, 0.08, 0.3, 0.12, 0.18, 0.06],
-        duration: ["16n", "8n", "8t"],
-        notes: ["A3", "C4", "D4", "E4", "G4", "A4", "B4", "D5", "E5"],
-        velocity: 0.2,
-        densityWeight: 0.24,
-        energyWeight: 0.12,
-        natureWeight: -0.16,
-        humanize: 0.018,
-        swingPush: 0.012,
-        filterBase: 1200,
-        filterRange: 900,
-      },
-      {
-        id: "soft-root-anchor",
-        type: "bass",
-        function: "anchor",
-        every: 8,
-        probability: 0.38,
-        pattern: [0.7, 0, 0, 0.12, 0.22, 0, 0.34, 0, 0.55, 0, 0.08, 0, 0.18, 0.26, 0, 0],
-        duration: "8n",
-        notes: ["F1", "E1", "A1", "D2"],
-        velocity: 0.22,
-        energyWeight: 0.1,
-        natureWeight: -0.04,
-        humanize: 0.014,
-        filterBase: 280,
-        filterRange: 360,
-      },
-      {
-        id: "brush-hat-texture",
-        type: "hat",
-        function: "texture",
-        every: 1,
+        tone: "felt",
+        every: 4,
         probability: 0.22,
-        pattern: [0.1, 0.55, 0.22, 0.36, 0.12, 0.48, 0.2, 0.3, 0.08, 0.58, 0.2, 0.34, 0.16, 0.42, 0.22, 0.28],
-        duration: "16n",
-        velocity: 0.08,
+        pattern: [0.44, 0, 0, 0, 0.1, 0, 0.26, 0, 0.18, 0, 0, 0, 0.3, 0, 0, 0],
+        duration: ["4n", "2n"],
+        notes: ["A3", "C4", "D4", "E4", "G4", "A4", "B4", "D5"],
+        velocity: 0.12,
         densityWeight: 0.12,
         energyWeight: 0.08,
-        natureWeight: -0.1,
-        humanize: 0.02,
-        swingPush: 0.009,
+        natureWeight: -0.2,
+        humanize: 0.032,
+        swingPush: 0.004,
+        rollMs: 10,
+        pedal: 0.64,
+        room: 0.76,
+        filterBase: 980,
+        filterRange: 520,
       },
       {
-        id: "room-air-floor",
-        type: "air",
+        id: "room-pedal-air",
+        type: "pad",
         function: "space",
-        every: 4,
-        probability: 0.16,
-        duration: "16n",
-        velocity: 0.05,
+        every: 32,
+        probability: 0.34,
+        duration: "2m",
+        notes: [
+          ["D3", "A3", "F4"],
+          ["G2", "D3", "B3"],
+          ["C3", "G3", "E4"],
+          ["A2", "E3", "C4"],
+        ],
+        velocity: 0.08,
         energyWeight: -0.04,
         natureWeight: 0.22,
+        filterBase: 420,
+        filterRange: 420,
       },
     ],
     variations: [
-      { id: "voicing-turn", chance: 0.12, densityDelta: 0.02, energyDelta: 0.02 },
-      { id: "room-rest", chance: 0.2, densityDelta: -0.08, natureDelta: 0.06 },
+      { id: "voicing-turn", chance: 0.1, densityDelta: 0.01, energyDelta: 0.01 },
+      { id: "room-rest", chance: 0.24, densityDelta: -0.1, natureDelta: 0.08 },
     ],
     transitionRules: {
-      maxDensity: 0.64,
+      maxDensity: 0.38,
       quietOnLateTicks: 3,
       fallback: "air",
     },
@@ -170,58 +162,69 @@ const CHILL_RECIPES = Object.freeze({
     label: "rainy lofi room",
     mode: "ambient",
     mood: "drift",
-    bpm: 80,
-    swing: 0.22,
-    defaultFaders: { faderA: 0.46, faderB: 0.48, faderC: 0.78 },
+    bpm: 74,
+    swing: 0.1,
+    defaultFaders: { faderA: 0.38, faderB: 0.36, faderC: 0.8 },
     layers: [
       {
         id: "rain-pad",
-        type: "pad",
+        type: "piano",
         function: "bed",
-        every: 32,
-        probability: 0.9,
-        duration: "2m",
+        tone: "glass",
+        every: 16,
+        probability: 0.74,
+        pattern: [0.82, 0, 0, 0, 0.24, 0, 0.12, 0, 0.56, 0, 0, 0.16, 0.28, 0, 0, 0],
+        duration: ["2n", "1m"],
         notes: [
-          ["D3", "F3", "A3", "C4", "E4"],
-          ["G2", "F3", "A3", "B3", "E4"],
-          ["C3", "E3", "G3", "B3", "D4"],
-          ["A2", "G3", "C4", "D4", "E4"],
+          ["E3", "B3", "D4", "F#4"],
+          ["A2", "E3", "B3", "C#4"],
+          ["D3", "A3", "E4", "G4"],
+          ["G2", "D3", "A3", "B3"],
         ],
-        velocity: 0.3,
-        energyWeight: 0.04,
+        velocity: 0.17,
+        densityWeight: -0.04,
+        energyWeight: 0.05,
         natureWeight: 0.2,
-        filterBase: 560,
-        filterRange: 820,
+        humanize: 0.03,
+        rollMs: 18,
+        pedal: 0.72,
+        room: 0.84,
+        filterBase: 1040,
+        filterRange: 620,
       },
       {
         id: "dust-piano-reply",
         type: "piano",
         function: "response",
-        every: 2,
-        probability: 0.32,
-        pattern: [0.44, 0.05, 0.18, 0.08, 0.24, 0.04, 0.5, 0.06, 0.28, 0.08, 0.12, 0.05, 0.34, 0.12, 0.08, 0.06],
-        duration: ["16n", "8n"],
+        tone: "glass",
+        every: 4,
+        probability: 0.2,
+        pattern: [0.34, 0, 0.08, 0, 0.18, 0, 0.36, 0, 0.2, 0, 0.08, 0, 0.28, 0, 0.06, 0],
+        duration: ["4n", "8n"],
         notes: ["D4", "F4", "G4", "A4", "C5", "D5", "E5"],
-        velocity: 0.18,
-        densityWeight: 0.22,
+        velocity: 0.11,
+        densityWeight: 0.1,
         energyWeight: 0.06,
         natureWeight: -0.18,
         humanize: 0.024,
-        swingPush: 0.016,
-        filterBase: 880,
-        filterRange: 760,
+        swingPush: 0.008,
+        rollMs: 9,
+        pedal: 0.56,
+        room: 0.82,
+        filterBase: 960,
+        filterRange: 620,
       },
       {
         id: "space-aware-kick",
         type: "kick",
         function: "anchor",
         every: 1,
-        probability: 0.42,
-        pattern: [0.9, 0, 0.04, 0, 0.16, 0, 0.42, 0, 0.48, 0, 0.08, 0.04, 0.18, 0.34, 0, 0.06],
+        probability: 0.18,
+        pattern: [0.58, 0, 0, 0, 0.04, 0, 0.14, 0, 0.28, 0, 0, 0, 0.08, 0.16, 0, 0],
         duration: "8n",
-        velocity: 0.2,
-        densityWeight: 0.12,
-        energyWeight: 0.14,
+        velocity: 0.11,
+        densityWeight: 0.08,
+        energyWeight: 0.08,
         natureWeight: -0.12,
         humanize: 0.018,
       },
@@ -230,12 +233,12 @@ const CHILL_RECIPES = Object.freeze({
         type: "hat",
         function: "texture",
         every: 1,
-        probability: 0.28,
-        pattern: [0.16, 0.68, 0.22, 0.54, 0.12, 0.62, 0.24, 0.48, 0.18, 0.7, 0.22, 0.5, 0.14, 0.58, 0.28, 0.42],
+        probability: 0.14,
+        pattern: [0.06, 0.28, 0.08, 0.22, 0.04, 0.3, 0.1, 0.18, 0.06, 0.32, 0.08, 0.2, 0.04, 0.28, 0.12, 0.16],
         duration: "16n",
-        velocity: 0.07,
-        densityWeight: 0.16,
-        energyWeight: 0.04,
+        velocity: 0.035,
+        densityWeight: 0.08,
+        energyWeight: 0.03,
         natureWeight: -0.1,
         humanize: 0.026,
         swingPush: 0.018,
@@ -245,9 +248,9 @@ const CHILL_RECIPES = Object.freeze({
         type: "air",
         function: "space",
         every: 2,
-        probability: 0.18,
+        probability: 0.14,
         duration: "16n",
-        velocity: 0.045,
+        velocity: 0.035,
         natureWeight: 0.28,
       },
     ],
@@ -266,56 +269,67 @@ const CHILL_RECIPES = Object.freeze({
     label: "soft solo drift",
     mode: "ambient",
     mood: "calm",
-    bpm: 72,
-    swing: 0.08,
-    defaultFaders: { faderA: 0.36, faderB: 0.28, faderC: 0.86 },
+    bpm: 58,
+    swing: 0.03,
+    defaultFaders: { faderA: 0.28, faderB: 0.22, faderC: 0.9 },
     layers: [
       {
         id: "solo-haze-pad",
-        type: "pad",
+        type: "piano",
         function: "bed",
-        every: 32,
-        probability: 0.95,
-        duration: "2m",
+        tone: "memory",
+        every: 16,
+        probability: 0.68,
+        pattern: [0.76, 0, 0, 0, 0.18, 0, 0, 0, 0.44, 0, 0, 0, 0.12, 0, 0, 0],
+        duration: ["1m", "2m"],
         notes: [
           ["C3", "E3", "G3", "B3", "D4"],
           ["A2", "E3", "G3", "B3", "C4"],
           ["F2", "C3", "E3", "A3", "D4"],
           ["G2", "D3", "F3", "A3", "C4"],
         ],
-        velocity: 0.26,
-        energyWeight: 0.04,
-        natureWeight: 0.18,
-        filterBase: 520,
-        filterRange: 780,
+        velocity: 0.13,
+        densityWeight: -0.06,
+        energyWeight: 0.03,
+        natureWeight: 0.22,
+        humanize: 0.04,
+        rollMs: 24,
+        pedal: 0.86,
+        room: 0.9,
+        filterBase: 760,
+        filterRange: 460,
       },
       {
         id: "solo-piano-memory",
         type: "piano",
         function: "memory",
+        tone: "memory",
         every: 4,
-        probability: 0.46,
-        pattern: [0.8, 0, 0.18, 0, 0.34, 0, 0.08, 0, 0.5, 0, 0.12, 0, 0.22, 0, 0.08, 0],
-        duration: ["8n", "4n"],
+        probability: 0.16,
+        pattern: [0.34, 0, 0, 0, 0.12, 0, 0.08, 0, 0.2, 0, 0, 0, 0.16, 0, 0.06, 0],
+        duration: ["4n", "2n"],
         notes: ["C4", "D4", "E4", "G4", "A4", "B4", "D5"],
-        velocity: 0.16,
-        densityWeight: 0.22,
-        energyWeight: 0.08,
+        velocity: 0.09,
+        densityWeight: 0.1,
+        energyWeight: 0.04,
         natureWeight: -0.22,
         humanize: 0.028,
         swingPush: 0.006,
-        filterBase: 940,
-        filterRange: 620,
+        rollMs: 14,
+        pedal: 0.72,
+        room: 0.88,
+        filterBase: 820,
+        filterRange: 520,
       },
       {
         id: "distant-root",
         type: "bass",
         function: "space",
         every: 32,
-        probability: 0.34,
+        probability: 0.14,
         duration: "2n",
         notes: ["C2", "A1", "F1", "G1"],
-        velocity: 0.14,
+        velocity: 0.08,
         energyWeight: 0.04,
         natureWeight: 0.06,
         filterBase: 240,
@@ -326,9 +340,9 @@ const CHILL_RECIPES = Object.freeze({
         type: "air",
         function: "space",
         every: 4,
-        probability: 0.2,
+        probability: 0.16,
         duration: "16n",
-        velocity: 0.04,
+        velocity: 0.03,
         natureWeight: 0.28,
       },
     ],
@@ -590,6 +604,10 @@ class ChillGenerator {
       duration,
       velocity: clamp01((layer.velocity ?? 0.3) + shape.energy * 0.16),
       filterHz: layer.filterBase ? layer.filterBase + shape.energy * (layer.filterRange ?? 0) : undefined,
+      tone: layer.tone ?? "felt",
+      rollSec: ((layer.rollMs ?? 0) / 1000) * (0.55 + shape.nature * 0.75),
+      pedal: clamp01((layer.pedal ?? 0.52) + shape.nature * 0.18),
+      room: clamp01((layer.room ?? 0.48) + shape.nature * 0.16),
       offset:
         (randomAt(this.config.seed, tickIndex, `${layer.id}:humanize`) - 0.5) * (layer.humanize ?? 0) +
         ((tickIndex % 4 === 2 || tickIndex % 4 === 3) ? (layer.swingPush ?? 0) * shape.nature : 0),
@@ -603,21 +621,21 @@ class ChillGenerator {
     const hatPattern = [0.1, 0.42, 0.16, 0.38, 0.08, 0.46, 0.14, 0.34, 0.12, 0.5, 0.14, 0.36, 0.08, 0.42, 0.18, 0.3];
     const rootPattern = [0.28, 0, 0, 0, 0, 0, 0.18, 0, 0.2, 0, 0, 0, 0, 0.14, 0, 0];
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-kick") < clamp01(kickPattern[step] * (0.28 + shape.energy * 0.26))) {
-      events.push({ type: "kick", id: "pulse-kick", duration: "8n", velocity: 0.16 + shape.energy * 0.16, offset: 0.004 * shape.nature });
+    if (randomAt(this.config.seed, tickIndex, "pulse-kick") < clamp01(kickPattern[step] * (0.12 + shape.energy * 0.12))) {
+      events.push({ type: "kick", id: "pulse-kick", duration: "8n", velocity: 0.08 + shape.energy * 0.08, offset: 0.004 * shape.nature });
     }
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-hat") < clamp01(hatPattern[step] * (0.24 + shape.density * 0.26))) {
-      events.push({ type: "hat", id: "pulse-hat", duration: "16n", velocity: 0.04 + shape.density * 0.08, offset: 0.01 * shape.nature });
+    if (randomAt(this.config.seed, tickIndex, "pulse-hat") < clamp01(hatPattern[step] * (0.12 + shape.density * 0.14))) {
+      events.push({ type: "hat", id: "pulse-hat", duration: "16n", velocity: 0.025 + shape.density * 0.04, offset: 0.01 * shape.nature });
     }
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.18 + shape.density * 0.2))) {
+    if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.1 + shape.density * 0.12))) {
       events.push({
         type: "bass",
         id: "pulse-root",
         notes: chooseAt(["F1", "A1", "C2", "D2"], this.config.seed, tickIndex, "pulse-root-pitch"),
         duration: "8n",
-        velocity: 0.12 + shape.energy * 0.12,
+        velocity: 0.06 + shape.energy * 0.08,
         filterHz: 260 + shape.energy * 420,
         offset: 0.006 * shape.nature,
       });
@@ -683,16 +701,30 @@ Tone.Transport.swingSubdivision = "8n";
 const limiter = new Tone.Limiter(-1).toDestination();
 const master = new Tone.Gain(0.82).connect(limiter);
 
-const pianoFilter = new Tone.Filter(1500, "lowpass");
-const pianoVerb = new Tone.Reverb(1.8);
-pianoVerb.wet.value = 0.24;
-const pianoMemory = new Tone.PolySynth(Tone.FMSynth, {
-  harmonicity: 1.5,
-  modulationIndex: 4.2,
+const pianoRoom = new Tone.Reverb(4.2);
+pianoRoom.wet.value = 0.36;
+const pianoBus = new Tone.Gain(0.58).chain(pianoRoom, master);
+
+const pianoBodyFilter = new Tone.Filter(1350, "lowpass");
+const pianoBody = new Tone.PolySynth(Tone.Synth, {
+  oscillator: { type: "triangle" },
+  envelope: { attack: 0.012, decay: 1.6, sustain: 0.05, release: 3.2 },
+}).chain(pianoBodyFilter, pianoBus);
+
+const pianoBellFilter = new Tone.Filter(2200, "lowpass");
+const pianoBell = new Tone.PolySynth(Tone.FMSynth, {
+  harmonicity: 1.08,
+  modulationIndex: 0.72,
   oscillator: { type: "sine" },
-  envelope: { attack: 0.008, decay: 0.42, sustain: 0.06, release: 1.4 },
-  modulationEnvelope: { attack: 0.005, decay: 0.18, sustain: 0.02, release: 0.8 },
-}).chain(pianoFilter, pianoVerb, master);
+  envelope: { attack: 0.004, decay: 0.28, sustain: 0, release: 1.6 },
+  modulationEnvelope: { attack: 0.004, decay: 0.18, sustain: 0, release: 0.8 },
+}).chain(pianoBellFilter, pianoBus);
+
+const pianoHammerFilter = new Tone.Filter(1700, "bandpass");
+const pianoHammer = new Tone.NoiseSynth({
+  noise: { type: "brown" },
+  envelope: { attack: 0.001, decay: 0.024, sustain: 0, release: 0.01 },
+}).chain(pianoHammerFilter, pianoBus);
 
 const leadFilter = new Tone.Filter(1400, "lowpass");
 const lead = new Tone.PolySynth(Tone.Synth, {
@@ -818,6 +850,54 @@ function watchRuntimeLoad() {
   }
 }
 
+function asNoteList(notes) {
+  if (!Array.isArray(notes)) return notes ? [notes] : [];
+  return notes;
+}
+
+function toneProfile(tone) {
+  if (tone === "glass") {
+    return { body: 0.74, bell: 0.28, hammer: 0.22, cutoff: 1.1, release: 0.94, room: 1.1 };
+  }
+  if (tone === "memory") {
+    return { body: 0.58, bell: 0.18, hammer: 0.12, cutoff: 0.72, release: 1.24, room: 1.18 };
+  }
+  return { body: 0.86, bell: 0.12, hammer: 0.18, cutoff: 0.86, release: 1.08, room: 1 };
+}
+
+function schedulePianoEvent(event, time, velocity) {
+  const notes = asNoteList(event.notes);
+  if (notes.length === 0) return;
+
+  const profile = toneProfile(event.tone);
+  const roll = Math.min(0.032, Math.max(0, event.rollSec ?? 0));
+  const pedal = clamp01(event.pedal ?? 0.58);
+  const room = clamp01(event.room ?? 0.54);
+  const baseCutoff = (event.filterHz ?? 1200) * profile.cutoff;
+  const bodyDur = pedal > 0.72 ? "1m" : event.duration;
+  const bellDur = event.tone === "memory" ? "8n" : "4n";
+
+  pianoRoom.wet.setValueAtTime(Math.min(0.58, 0.22 + room * 0.34 * profile.room), time);
+  pianoBodyFilter.frequency.setValueAtTime(Math.max(520, Math.min(2400, baseCutoff)), time);
+  pianoBellFilter.frequency.setValueAtTime(Math.max(1100, Math.min(3600, baseCutoff * 1.74)), time);
+
+  notes.forEach((note, index) => {
+    const noteTime = time + (event.offset ?? 0) + index * roll;
+    const noteTilt = 1 - index * 0.045;
+    const bodyVelocity = clamp01(velocity * profile.body * noteTilt);
+    const bellVelocity = clamp01(velocity * profile.bell * (0.9 - index * 0.03));
+    const hammerVelocity = clamp01(velocity * profile.hammer * (0.9 - index * 0.06));
+
+    pianoBody.triggerAttackRelease(note, bodyDur, noteTime, bodyVelocity);
+    if (bellVelocity > 0.008) {
+      pianoBell.triggerAttackRelease(note, bellDur, noteTime + 0.006, bellVelocity);
+    }
+    if (index === 0 && hammerVelocity > 0.008) {
+      pianoHammer.triggerAttackRelease("32n", noteTime, hammerVelocity);
+    }
+  });
+}
+
 function scheduleEvent(event, time = Tone.now()) {
   if (runtimeHealth.quiet && event.type !== "air") {
     const result = {
@@ -833,14 +913,13 @@ function scheduleEvent(event, time = Tone.now()) {
   try {
     const velocity = clamp01(event.velocity ?? 0.3);
     if (event.filterHz) {
-      pianoFilter.frequency.setValueAtTime(event.filterHz, time);
       leadFilter.frequency.setValueAtTime(event.filterHz, time);
       padFilter.frequency.setValueAtTime(event.filterHz, time);
       bass.filter.frequency.setValueAtTime(event.filterHz, time);
     }
 
     if (event.type === "piano" && event.notes) {
-      pianoMemory.triggerAttackRelease(event.notes, event.duration, time + event.offset, velocity);
+      schedulePianoEvent(event, time, velocity);
     } else if (event.type === "lead" && event.notes) {
       lead.triggerAttackRelease(event.notes, event.duration, time + event.offset, velocity);
     } else if (event.type === "pad" && event.notes) {
@@ -913,8 +992,12 @@ function compactEvent(event, tick) {
     id: event.id,
     notes: event.notes,
     duration: event.duration,
+    tone: event.tone,
     velocity: Number((event.velocity ?? 0).toFixed(4)),
     offset: Number((event.offset ?? 0).toFixed(4)),
+    rollSec: Number((event.rollSec ?? 0).toFixed(4)),
+    pedal: Number((event.pedal ?? 0).toFixed(4)),
+    room: Number((event.room ?? 0).toFixed(4)),
   };
 }
 

@@ -185,7 +185,7 @@ input[type="range"] {
 
 .session-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin: 10px 0 4px;
 }
@@ -203,6 +203,12 @@ input[type="range"] {
 .panic-button {
   color: #ffe8d6;
   background: rgba(112, 49, 35, 0.5) !important;
+}
+
+@media (max-width: 520px) {
+  .session-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 button,

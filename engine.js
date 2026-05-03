@@ -888,6 +888,14 @@ const bass = new Tone.MonoSynth({
   filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.12, release: 0.22 },
 }).connect(master);
 
+const sessionBassFilter = new Tone.Filter(380, "lowpass");
+const sessionBass = new Tone.MonoSynth({
+  oscillator: { type: "triangle" },
+  filter: { type: "lowpass", rolloff: -24 },
+  envelope: { attack: 0.026, decay: 0.36, sustain: 0.18, release: 0.72 },
+  filterEnvelope: { attack: 0.018, decay: 0.28, sustain: 0.12, release: 0.5 },
+}).chain(sessionBassFilter, master);
+
 const kick = new Tone.MembraneSynth({
   pitchDecay: 0.008,
   octaves: 3,
@@ -1183,12 +1191,131 @@ function runDeterminismCheck(options = {}) {
   };
 }
 
+const sessionRuntime = {
+  bassOn: true,
+};
+
+const SESSION_BASS_ROUTES = Object.freeze({
+  "piano-jazz-chill": {
+    roots: ["D2", "G1", "C2", "A1"],
+    fifths: ["A2", "D2", "G2", "E2"],
+    approaches: ["C#2", "F#1", "B1", "G#1"],
+  },
+  "rainy-lofi-room": {
+    roots: ["E2", "A1", "D2", "G1"],
+    fifths: ["B2", "E2", "A2", "D2"],
+    approaches: ["D#2", "G#1", "C#2", "F#1"],
+  },
+  "soft-solo-drift": {
+    roots: ["C2", "A1", "F1", "G1"],
+    fifths: ["G2", "E2", "C2", "D2"],
+    approaches: ["B1", "G#1", "E1", "F#1"],
+  },
+});
+
+function buildSessionBassEvents(options = {}) {
+  if (options.bassOn === false) return [];
+  const referenceId = CHILL_RECIPES[options.referenceId] ? options.referenceId : generator.config.referenceId;
+  const route = SESSION_BASS_ROUTES[referenceId] ?? SESSION_BASS_ROUTES[DEFAULT_CONFIG.referenceId];
+  const seed = normalizeSeed(options.seed ?? generator.config.seed);
+  const barIndex = Math.max(0, Math.floor(Number(options.barIndex) || 0));
+  const touch = clamp01(options.touch ?? options.faderA ?? generator.config.faderA);
+  const phrase = clamp01(options.phrase ?? options.faderB ?? generator.config.faderB);
+  const room = clamp01(options.room ?? options.faderC ?? generator.config.faderC);
+  const baseTick = barIndex * 16;
+  const rootIndex = barIndex % route.roots.length;
+  const events = [];
+  const rootChance = referenceId === "soft-solo-drift" ? 0.58 : 0.82;
+  const roomRest = room * (referenceId === "soft-solo-drift" ? 0.34 : 0.26);
+
+  if (randomAt(seed, baseTick, "session-bass-root") < clamp01(rootChance + touch * 0.06 - roomRest)) {
+    events.push({
+      type: "session-bass",
+      role: "root",
+      note: route.roots[rootIndex],
+      beat: 0,
+      duration: room > 0.84 ? "4n" : "2n",
+      velocity: Number(clamp01(0.09 + touch * 0.032 - room * 0.018).toFixed(4)),
+      filterHz: Math.round(220 + touch * 150 - room * 42),
+      offset: Number(((randomAt(seed, baseTick, "session-bass-root-offset") - 0.5) * 0.018).toFixed(4)),
+    });
+  }
+
+  const answerChance = clamp01(phrase * 0.28 + (1 - room) * 0.14 - (referenceId === "soft-solo-drift" ? 0.1 : 0));
+  if (events.length < 2 && randomAt(seed, baseTick, "session-bass-answer") < answerChance) {
+    const useApproach = randomAt(seed, baseTick, "session-bass-answer-kind") < phrase * 0.45;
+    events.push({
+      type: "session-bass",
+      role: useApproach ? "approach" : "fifth",
+      note: useApproach ? route.approaches[rootIndex] : route.fifths[rootIndex],
+      beat: useApproach ? 3.48 : 2,
+      duration: useApproach ? "8n" : "4n",
+      velocity: Number(clamp01(0.052 + touch * 0.018 + phrase * 0.012 - room * 0.012).toFixed(4)),
+      filterHz: Math.round(240 + touch * 170 - room * 34),
+      offset: Number(((randomAt(seed, baseTick, "session-bass-answer-offset") - 0.5) * 0.024).toFixed(4)),
+    });
+  }
+
+  return events.slice(0, 2);
+}
+
+function previewBassBar(options = {}) {
+  const events = buildSessionBassEvents({
+    bassOn: options.bassOn ?? true,
+    referenceId: options.referenceId,
+    seed: options.seed,
+    barIndex: options.barIndex,
+    touch: options.touch,
+    phrase: options.phrase,
+    room: options.room,
+  });
+  return {
+    barIndex: Math.max(0, Math.floor(Number(options.barIndex) || 0)),
+    referenceId: CHILL_RECIPES[options.referenceId] ? options.referenceId : generator.config.referenceId,
+    eventCount: events.length,
+    fingerprint: hashString(JSON.stringify(events)).toString(16),
+    events,
+  };
+}
+
+function scheduleSessionBassBar(options = {}) {
+  if (options.bassOn === false || !sessionRuntime.bassOn) {
+    return { scheduled: false, reason: "bass-off", eventCount: 0, events: [] };
+  }
+  if (runtimeHealth.quiet) {
+    return { scheduled: false, reason: "quiet-mode", eventCount: 0, events: [] };
+  }
+
+  const bpm = Math.max(54, Math.min(120, Number(options.bpm) || Tone.Transport.bpm.value || 72));
+  const beatSec = 60 / bpm;
+  const startTime = Number.isFinite(options.startTime) ? options.startTime : Tone.now();
+  const preview = previewBassBar({
+    ...options,
+    bassOn: true,
+  });
+
+  preview.events.forEach((event) => {
+    const eventTime = startTime + event.beat * beatSec + event.offset;
+    sessionBassFilter.frequency.setValueAtTime(Math.max(140, Math.min(520, event.filterHz)), eventTime);
+    sessionBass.triggerAttackRelease(event.note, event.duration, eventTime, event.velocity);
+  });
+
+  return {
+    scheduled: preview.events.length > 0,
+    reason: preview.events.length > 0 ? "scheduled" : "rest",
+    eventCount: preview.events.length,
+    events: preview.events,
+    fingerprint: preview.fingerprint,
+  };
+}
+
 function getToneAudioContext() {
   const context = typeof Tone.getContext === "function" ? Tone.getContext() : Tone.context;
   return context?.rawContext ?? context?._context?.rawContext ?? context;
 }
 
 function setSessionState(options = {}) {
+  if (typeof options.bassOn === "boolean") sessionRuntime.bassOn = options.bassOn;
   if (Number.isFinite(options.seed)) generator.setSeed(options.seed);
   if (options.referenceId && CHILL_RECIPES[options.referenceId]) generator.setReference(options.referenceId);
   const nextA = options.touch ?? options.faderA ?? generator.config.faderA;
@@ -1199,7 +1326,7 @@ function setSessionState(options = {}) {
   if (Number.isFinite(bpm)) Tone.Transport.bpm.rampTo(Math.max(54, Math.min(120, bpm)), 0.2);
   syncControlsFromConfig();
   updateUi();
-  return { ...generator.config, bpm: Tone.Transport.bpm.value };
+  return { ...generator.config, bassOn: sessionRuntime.bassOn, bpm: Tone.Transport.bpm.value };
 }
 
 function scheduleSessionTick(options = {}) {
@@ -1216,6 +1343,11 @@ function scheduleSessionTick(options = {}) {
 
 function panicSession() {
   Tone.Transport.stop();
+  try {
+    sessionBass.triggerRelease(Tone.now());
+  } catch (error) {
+    console.warn("session bass release failed", error);
+  }
   enterQuietMode("session panic");
   updateUi();
   return { quiet: runtimeHealth.quiet, status: runtimeHealth.lastScheduleResult };
@@ -1233,7 +1365,9 @@ const chillAdapter = {
   session: {
     getAudioContext: getToneAudioContext,
     scheduleTick: scheduleSessionTick,
+    scheduleBassBar: scheduleSessionBassBar,
     setSessionState,
+    previewBassBar,
     panic: panicSession,
   },
   getRuntimeConfig: () => ({ ...generator.config }),

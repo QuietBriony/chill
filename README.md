@@ -49,6 +49,7 @@ Current recipes:
 Button meaning:
 - `PULSE`: optional soft kick / hat / bass floor under the piano. It is off by default and should not become the main feature.
 - `AUTO`: slow changes to voicing, rest, and room. It should not suddenly turn the radio into a different track.
+- `BASS` on the session page is a sparse synthetic upright-ish root/fifth layer hosted by `chill`, not `Music` or `drum-floor`.
 
 Stack separation:
 - `Music`: experimental / edge reference-driven rig
@@ -60,6 +61,11 @@ Live preview:
 - GitHub Pages: https://quietbriony.github.io/chill/
 - Quiet Piano Trio session: https://quietbriony.github.io/chill/session.html
 - Pages source: `main` branch, repository root.
+
+Quiet Piano Trio session:
+- `BASS`: sparse synthetic upright-ish roots/fifths hosted by `chill`.
+- `DRUMS`: optional drum-floor soft pocket bars.
+- `AUTO`: slow piano room / drum space drift without changing the track identity.
 
 Public runtime contracts:
 - `ChillRuntimeConfig`

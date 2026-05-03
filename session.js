@@ -7,6 +7,7 @@ const refs = {
   startBtn: document.getElementById("startBtn"),
   stopBtn: document.getElementById("stopBtn"),
   drumsBtn: document.getElementById("acidBtn"),
+  bassBtn: document.getElementById("bassBtn"),
   autoBtn: document.getElementById("autoBtn"),
   panicBtn: document.getElementById("panicBtn"),
   seedBtn: document.getElementById("seedBtn"),
@@ -15,6 +16,7 @@ const refs = {
   nature: document.getElementById("nature"),
   referenceSelect: document.getElementById("referenceSelect"),
   sessionStatus: document.getElementById("sessionStatus"),
+  bassStatus: document.getElementById("bassStatus"),
   drumStatus: document.getElementById("drumStatus"),
   sessionBar: document.getElementById("sessionBar"),
 };
@@ -23,8 +25,10 @@ let drumAdapter = null;
 let drumLoop = null;
 let drumBar = 0;
 let drumsOn = false;
+let bassOn = true;
 let sessionAuto = false;
 let drumLoadStarted = false;
+let lastBassEventCount = 0;
 
 const originalStart = refs.startBtn.onclick;
 const originalStop = refs.stopBtn.onclick;
@@ -51,9 +55,13 @@ function updateSessionUi() {
   refs.drumsBtn.textContent = drumsOn ? "DRUMS ON" : "DRUMS";
   refs.drumsBtn.setAttribute("aria-pressed", String(drumsOn));
   refs.drumsBtn.classList.toggle("is-active", drumsOn);
+  refs.bassBtn.textContent = bassOn ? "BASS ON" : "BASS";
+  refs.bassBtn.setAttribute("aria-pressed", String(bassOn));
+  refs.bassBtn.classList.toggle("is-active", bassOn);
   refs.autoBtn.textContent = sessionAuto ? "AUTO ON" : "AUTO";
   refs.autoBtn.setAttribute("aria-pressed", String(sessionAuto));
   setText(refs.sessionBar, `bar ${drumBar}`);
+  if (!bassOn) setText(refs.bassStatus, "bass off");
   if (!drumAdapter && drumLoadStarted) setText(refs.drumStatus, "drums unavailable");
 }
 
@@ -63,9 +71,10 @@ function sessionShape(barIndex = drumBar) {
   const room = Number(refs.nature.value);
   const autoWave = sessionAuto ? Math.sin((barIndex + currentSeed() % 17) * 0.41) : 0;
   const autoLift = sessionAuto ? Math.max(0, autoWave) : 0;
-  const density = clamp(12 + phrase * 20 + touch * 8 - room * 8 + autoLift * 4, 8, 36);
-  const energy = clamp(16 + touch * 24 + autoLift * 3, 14, 42);
-  const space = clamp(68 + room * 24 - phrase * 8 - autoLift * 4, 58, 92);
+  const bassSpace = bassOn ? 1 + Math.min(1, lastBassEventCount) * 0.35 : 0;
+  const density = clamp(12 + phrase * 20 + touch * 8 - room * 8 + autoLift * 4 - bassSpace * 3, 8, 36);
+  const energy = clamp(16 + touch * 24 + autoLift * 3 - bassSpace * 2, 14, 42);
+  const space = clamp(68 + room * 24 - phrase * 8 - autoLift * 4 + bassSpace * 3, 58, 94);
   const humanize = clamp(56 + room * 20 + phrase * 4, 48, 82);
   const swing = clamp(8 + room * 4 + phrase * 2, 7, 14);
   const fillDemand = clamp(2 + phrase * 10 - room * 5 + autoLift * 2, 0, 12);
@@ -126,6 +135,7 @@ function syncSessionState() {
     touch,
     phrase,
     room,
+    bassOn,
   });
   if (drumAdapter) drumAdapter.setSession(sessionShape());
 }
@@ -133,6 +143,25 @@ function syncSessionState() {
 function ensureDrumLoop() {
   if (drumLoop) return drumLoop;
   drumLoop = new Tone.Loop((time) => {
+  if (bassOn) {
+      const bassResult = window.chillAdapter?.session?.scheduleBassBar?.({
+        bpm: SESSION_BPM,
+        seed: currentSeed(),
+        referenceId: refs.referenceSelect.value || "piano-jazz-chill",
+        barIndex: drumBar,
+        touch: Number(refs.energy.value),
+        phrase: Number(refs.creation.value),
+        room: Number(refs.nature.value),
+        bassOn,
+        startTime: time,
+      });
+      lastBassEventCount = bassResult?.eventCount ?? 0;
+      const firstBass = bassResult?.events?.[0];
+      setText(refs.bassStatus, firstBass ? `bass ${firstBass.note}` : "bass rest");
+    } else {
+      lastBassEventCount = 0;
+    }
+
     if (!drumsOn || !drumAdapter) return;
     drumAdapter.setSession(sessionShape(drumBar));
     const result = drumAdapter.scheduleBar({ barIndex: drumBar, startTime: time });
@@ -176,6 +205,14 @@ refs.drumsBtn.onclick = async () => {
   updateSessionUi();
 };
 
+refs.bassBtn.onclick = () => {
+  bassOn = !bassOn;
+  lastBassEventCount = 0;
+  setText(refs.bassStatus, bassOn ? "bass armed" : "bass off");
+  syncSessionState();
+  updateSessionUi();
+};
+
 refs.autoBtn.onclick = (event) => {
   sessionAuto = !sessionAuto;
   originalAuto?.call(refs.autoBtn, event);
@@ -188,7 +225,10 @@ refs.panicBtn.onclick = () => {
   if (drumAdapter) drumAdapter.panic();
   window.chillAdapter?.session?.panic?.();
   drumsOn = false;
+  bassOn = false;
+  lastBassEventCount = 0;
   setText(refs.sessionStatus, "panic quiet");
+  setText(refs.bassStatus, "bass quiet");
   setText(refs.drumStatus, "drums quiet");
   updateSessionUi();
 };

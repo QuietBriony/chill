@@ -72,8 +72,13 @@ Public runtime contracts:
 - `ChillRecipe`
 - `ChillGenerator`
 - `window.chillAdapter`
+- `window.chillTrioSession.snapshot()`
 - `window.chillAdapter.diagnostics.previewEventStream()`
 - `window.chillAdapter.diagnostics.runDeterminismCheck()`
+
+Trio snapshot:
+- `window.chillTrioSession.snapshot()` is read-only and returns `bassOn`, `drumsOn`, `auto`, `barIndex`, `seed`, `sessionShape`, `bassPreview`, and the drum-floor adapter snapshot when loaded.
+- It does not start audio, schedule notes, click controls, arm drum-floor candidates, or mutate Tone transport.
 
 Fixed storage keys:
 - `chill:session:v1`

@@ -86,6 +86,25 @@ body::before {
   color: #d8c8ad;
 }
 
+.page-link {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #f6e8ce;
+  background: rgba(10, 12, 10, 0.24);
+  border: 1px solid rgba(235, 210, 160, 0.14);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.page-link:hover,
+.page-link:focus-visible {
+  border-color: rgba(245, 222, 178, 0.36);
+}
+
 .controls,
 .reference-row,
 .runtime-status {

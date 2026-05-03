@@ -183,7 +183,15 @@ refs.startBtn.onclick = async (event) => {
   const loop = ensureDrumLoop();
   loop.stop(0);
   loop.start(0);
-  if (drumAdapter) await drumAdapter.start();
+  if (drumAdapter) {
+    try {
+      await drumAdapter.start();
+    } catch (error) {
+      console.warn("[chill session] drum start failed; piano will continue", error);
+      drumsOn = false;
+      setText(refs.drumStatus, "drums unavailable");
+    }
+  }
   await originalStart?.call(refs.startBtn, event);
   setText(refs.sessionStatus, "session playing");
   updateSessionUi();

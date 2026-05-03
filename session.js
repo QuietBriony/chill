@@ -1,4 +1,5 @@
 const SESSION_BPM = 72;
+const DRUM_ADAPTER_VERSION = "20260503-base-path";
 const DRUM_PROFILE = "nerdy_jazzy_hiphop";
 const DRUM_FRAME = "jazzy_ghost_glue";
 const DRUM_KIT = "hard_bop_room";
@@ -158,7 +159,7 @@ async function ensureDrums() {
   setText(refs.drumStatus, "drums loading");
 
   drumLoadPromise = (async () => {
-    const module = await import(`${sessionBasePath()}src/session-adapter.js`);
+    const module = await import(`${sessionBasePath()}src/session-adapter.js?v=${DRUM_ADAPTER_VERSION}`);
     const audioContext = window.chillAdapter?.session?.getAudioContext?.() ?? null;
     drumAdapter = module.createDrumFloorSessionAdapter({
       basePath: sessionBasePath(),

@@ -1,9 +1,9 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: #02060b;
+  background: #0d0f0d;
   font-family: "Inter", "Hiragino Sans", sans-serif;
-  color: #dff2ff;
+  color: #f4ead6;
 }
 
 #bg {
@@ -21,10 +21,10 @@ body {
   z-index: 10;
   width: min(92vw, 380px);
   padding: 16px 18px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(34, 37, 31, 0.72);
   border-radius: 18px;
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(235, 210, 160, 0.18);
   text-align: center;
   box-sizing: border-box;
 }
@@ -57,25 +57,25 @@ body {
   padding: 13px 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #eaf6ff;
-  background: rgba(100, 160, 255, 0.28);
+  color: #fff7e8;
+  background: rgba(139, 118, 78, 0.38);
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  text-shadow: 0 0 5px rgba(140, 190, 255, 0.7);
-  box-shadow: 0 0 6px rgba(120, 180, 255, 0.45),
+  text-shadow: 0 0 5px rgba(235, 210, 160, 0.45);
+  box-shadow: 0 0 6px rgba(140, 182, 150, 0.32),
     inset 0 0 4px rgba(255, 255, 255, 0.15);
 }
 
 .reference-row select {
   appearance: none;
-  background: rgba(18, 36, 54, 0.86);
+  background: rgba(28, 39, 34, 0.9);
 }
 
 .controls button:active,
 .reference-row button:active,
 .controls button.is-active {
-  background: rgba(140, 190, 255, 0.5);
+  background: rgba(140, 182, 150, 0.52);
 }
 
 .faders label {
@@ -100,7 +100,7 @@ input[type="range"] {
 .runtime-status span {
   padding: 4px 7px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(235, 210, 160, 0.1);
 }
 
 button,

@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>Chill v3.1 — Piano Jazz Radio</title>
+    <title>Chill v3.2 - Quiet Piano Radio</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -16,9 +16,13 @@
 
     <div class="panel">
       <h1>
-        Chill v3.1
-        <span>Piano Jazz Radio</span>
+        Chill v3.2
+        <span>Quiet Piano Radio</span>
       </h1>
+
+      <p class="listening-note">
+        Synthetic felt piano, quiet voicings, no samples.
+      </p>
 
       <div class="controls">
         <button id="startBtn">▶ START</button>
@@ -26,22 +30,27 @@
       </div>
 
       <div class="controls">
-        <button id="acidBtn">⟡ GROOVE</button>
-        <button id="autoBtn">∞ AUTO</button>
+        <button id="acidBtn" aria-pressed="false">PULSE</button>
+        <button id="autoBtn" aria-pressed="false">AUTO</button>
       </div>
+
+      <p class="mode-note">
+        PULSE adds a very soft rhythm floor. AUTO only drifts voicing and room.
+      </p>
 
       <div class="reference-row">
         <select id="referenceSelect" aria-label="Reference">
-          <option value="piano-jazz-chill">piano jazz chill</option>
-          <option value="rainy-lofi-room">rainy lofi room</option>
-          <option value="soft-solo-drift">soft solo drift</option>
+          <option value="piano-jazz-chill">Quiet Piano</option>
+          <option value="rainy-lofi-room">Glass Piano</option>
+          <option value="soft-solo-drift">Memory Piano</option>
         </select>
         <button id="seedBtn">NEW SEED</button>
       </div>
 
       <div class="faders">
         <label>
-          Energy
+          <span class="fader-name">Touch</span>
+          <span class="fader-hint">hammer / brightness</span>
           <input
             type="range"
             id="energy"
@@ -52,7 +61,8 @@
           />
         </label>
         <label>
-          Creation
+          <span class="fader-name">Phrase</span>
+          <span class="fader-hint">answers / voicing</span>
           <input
             type="range"
             id="creation"
@@ -63,7 +73,8 @@
           />
         </label>
         <label>
-          Nature
+          <span class="fader-name">Room</span>
+          <span class="fader-hint">space / rest</span>
           <input
             type="range"
             id="nature"

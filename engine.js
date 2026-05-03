@@ -59,9 +59,9 @@ const STORAGE_KEYS = Object.freeze({
 const DEFAULT_CONFIG = Object.freeze({
   mode: "ambient",
   seed: 240424,
-  faderA: 0.54,
-  faderB: 0.42,
-  faderC: 0.66,
+  faderA: 0.32,
+  faderB: 0.24,
+  faderC: 0.78,
   mood: "glow",
   referenceId: "piano-jazz-chill",
 });
@@ -72,12 +72,12 @@ const MOODS = Object.freeze(["calm", "glow", "drift", "edge"]);
 const CHILL_RECIPES = Object.freeze({
   "piano-jazz-chill": {
     id: "piano-jazz-chill",
-    label: "piano jazz chill",
+    label: "Quiet Piano",
     mode: "ambient",
     mood: "calm",
     bpm: 66,
     swing: 0.04,
-    defaultFaders: { faderA: 0.34, faderB: 0.26, faderC: 0.86 },
+    defaultFaders: { faderA: 0.28, faderB: 0.2, faderC: 0.78 },
     layers: [
       {
         id: "room-chord-bed",
@@ -85,64 +85,70 @@ const CHILL_RECIPES = Object.freeze({
         function: "bed",
         tone: "felt",
         every: 16,
-        probability: 0.84,
+        probability: 0.9,
         pattern: [0.98, 0, 0, 0, 0.32, 0, 0, 0, 0.64, 0, 0, 0, 0.24, 0, 0, 0],
-        duration: ["2n", "1m"],
+        duration: ["2n", "1n"],
         notes: [
-          ["D3", "A3", "C4", "F4"],
-          ["G2", "D3", "F3", "B3"],
-          ["C3", "G3", "B3", "E4"],
-          ["A2", "E3", "G3", "C4"],
+          ["D3", "F3", "A3", "C4", "E4"],
+          ["G2", "F3", "A3", "B3", "E4"],
+          ["C3", "E3", "G3", "B3", "D4"],
+          ["A2", "C3", "E3", "G3", "B3"],
         ],
-        velocity: 0.2,
+        velocity: 0.17,
         densityWeight: -0.06,
         energyWeight: 0.06,
         natureWeight: 0.18,
         humanize: 0.026,
-        rollMs: 22,
-        pedal: 0.78,
-        room: 0.72,
-        filterBase: 920,
-        filterRange: 620,
+        rollMs: 18,
+        pedal: 0.68,
+        room: 0.58,
+        filterBase: 820,
+        filterRange: 420,
       },
       {
         id: "piano-memory",
         type: "piano",
         function: "memory",
         tone: "felt",
-        every: 4,
-        probability: 0.22,
+        every: 8,
+        probability: 0.18,
         pattern: [0.44, 0, 0, 0, 0.1, 0, 0.26, 0, 0.18, 0, 0, 0, 0.3, 0, 0, 0],
-        duration: ["4n", "2n"],
-        notes: ["A3", "C4", "D4", "E4", "G4", "A4", "B4", "D5"],
-        velocity: 0.12,
+        duration: ["2n", "4n"],
+        notes: [
+          ["E4", "G4"],
+          ["A3", "C4", "E4"],
+          ["D4", "F4"],
+          ["B3", "D4", "G4"],
+          ["C4", "E4", "A4"],
+        ],
+        velocity: 0.095,
         densityWeight: 0.12,
         energyWeight: 0.08,
         natureWeight: -0.2,
         humanize: 0.032,
         swingPush: 0.004,
-        rollMs: 10,
-        pedal: 0.64,
-        room: 0.76,
-        filterBase: 980,
-        filterRange: 520,
+        rollMs: 16,
+        pedal: 0.56,
+        room: 0.58,
+        filterBase: 780,
+        filterRange: 360,
       },
       {
         id: "room-pedal-air",
         type: "pad",
         function: "space",
         every: 32,
-        probability: 0.34,
-        duration: "2m",
+        probability: 0,
+        duration: "2n",
         notes: [
           ["D3", "A3", "F4"],
           ["G2", "D3", "B3"],
           ["C3", "G3", "E4"],
           ["A2", "E3", "C4"],
         ],
-        velocity: 0.08,
+        velocity: 0,
         energyWeight: -0.04,
-        natureWeight: 0.22,
+        natureWeight: 0.08,
         filterBase: 420,
         filterRange: 420,
       },
@@ -159,7 +165,7 @@ const CHILL_RECIPES = Object.freeze({
   },
   "rainy-lofi-room": {
     id: "rainy-lofi-room",
-    label: "rainy lofi room",
+    label: "Glass Piano",
     mode: "ambient",
     mood: "drift",
     bpm: 74,
@@ -174,35 +180,40 @@ const CHILL_RECIPES = Object.freeze({
         every: 16,
         probability: 0.74,
         pattern: [0.82, 0, 0, 0, 0.24, 0, 0.12, 0, 0.56, 0, 0, 0.16, 0.28, 0, 0, 0],
-        duration: ["2n", "1m"],
+        duration: ["2n", "1n"],
         notes: [
-          ["E3", "B3", "D4", "F#4"],
-          ["A2", "E3", "B3", "C#4"],
-          ["D3", "A3", "E4", "G4"],
-          ["G2", "D3", "A3", "B3"],
+          ["E3", "G3", "B3", "D4", "F#4"],
+          ["A2", "C#3", "E3", "B3", "D4"],
+          ["D3", "F#3", "A3", "E4", "G4"],
+          ["G2", "B2", "D3", "A3", "C4"],
         ],
-        velocity: 0.17,
+        velocity: 0.14,
         densityWeight: -0.04,
         energyWeight: 0.05,
         natureWeight: 0.2,
         humanize: 0.03,
-        rollMs: 18,
-        pedal: 0.72,
-        room: 0.84,
-        filterBase: 1040,
-        filterRange: 620,
+        rollMs: 16,
+        pedal: 0.62,
+        room: 0.62,
+        filterBase: 900,
+        filterRange: 420,
       },
       {
         id: "dust-piano-reply",
         type: "piano",
         function: "response",
         tone: "glass",
-        every: 4,
-        probability: 0.2,
-        pattern: [0.34, 0, 0.08, 0, 0.18, 0, 0.36, 0, 0.2, 0, 0.08, 0, 0.28, 0, 0.06, 0],
-        duration: ["4n", "8n"],
-        notes: ["D4", "F4", "G4", "A4", "C5", "D5", "E5"],
-        velocity: 0.11,
+        every: 8,
+        probability: 0.16,
+        pattern: [0.26, 0, 0, 0, 0.12, 0, 0.24, 0, 0.16, 0, 0, 0, 0.22, 0, 0.04, 0],
+        duration: ["4n", "2n"],
+        notes: [
+          ["D4", "F#4"],
+          ["G4", "A4"],
+          ["E4", "B4"],
+          ["C#4", "F#4", "A4"],
+        ],
+        velocity: 0.085,
         densityWeight: 0.1,
         energyWeight: 0.06,
         natureWeight: -0.18,
@@ -219,10 +230,10 @@ const CHILL_RECIPES = Object.freeze({
         type: "kick",
         function: "anchor",
         every: 1,
-        probability: 0.18,
-        pattern: [0.58, 0, 0, 0, 0.04, 0, 0.14, 0, 0.28, 0, 0, 0, 0.08, 0.16, 0, 0],
+        probability: 0.04,
+        pattern: [0.38, 0, 0, 0, 0.02, 0, 0.08, 0, 0.18, 0, 0, 0, 0.04, 0.1, 0, 0],
         duration: "8n",
-        velocity: 0.11,
+        velocity: 0.045,
         densityWeight: 0.08,
         energyWeight: 0.08,
         natureWeight: -0.12,
@@ -233,10 +244,10 @@ const CHILL_RECIPES = Object.freeze({
         type: "hat",
         function: "texture",
         every: 1,
-        probability: 0.14,
-        pattern: [0.06, 0.28, 0.08, 0.22, 0.04, 0.3, 0.1, 0.18, 0.06, 0.32, 0.08, 0.2, 0.04, 0.28, 0.12, 0.16],
+        probability: 0.05,
+        pattern: [0.04, 0.18, 0.04, 0.16, 0.02, 0.2, 0.06, 0.14, 0.04, 0.22, 0.06, 0.14, 0.02, 0.18, 0.08, 0.12],
         duration: "16n",
-        velocity: 0.035,
+        velocity: 0.018,
         densityWeight: 0.08,
         energyWeight: 0.03,
         natureWeight: -0.1,
@@ -247,11 +258,11 @@ const CHILL_RECIPES = Object.freeze({
         id: "rain-air",
         type: "air",
         function: "space",
-        every: 2,
-        probability: 0.14,
+        every: 8,
+        probability: 0.05,
         duration: "16n",
-        velocity: 0.035,
-        natureWeight: 0.28,
+        velocity: 0.016,
+        natureWeight: 0.12,
       },
     ],
     variations: [
@@ -266,7 +277,7 @@ const CHILL_RECIPES = Object.freeze({
   },
   "soft-solo-drift": {
     id: "soft-solo-drift",
-    label: "soft solo drift",
+    label: "Memory Piano",
     mode: "ambient",
     mood: "calm",
     bpm: 58,
@@ -288,28 +299,33 @@ const CHILL_RECIPES = Object.freeze({
           ["F2", "C3", "E3", "A3", "D4"],
           ["G2", "D3", "F3", "A3", "C4"],
         ],
-        velocity: 0.13,
+        velocity: 0.11,
         densityWeight: -0.06,
         energyWeight: 0.03,
         natureWeight: 0.22,
         humanize: 0.04,
-        rollMs: 24,
-        pedal: 0.86,
-        room: 0.9,
-        filterBase: 760,
-        filterRange: 460,
+        rollMs: 22,
+        pedal: 0.72,
+        room: 0.66,
+        filterBase: 640,
+        filterRange: 280,
       },
       {
         id: "solo-piano-memory",
         type: "piano",
         function: "memory",
         tone: "memory",
-        every: 4,
-        probability: 0.16,
-        pattern: [0.34, 0, 0, 0, 0.12, 0, 0.08, 0, 0.2, 0, 0, 0, 0.16, 0, 0.06, 0],
-        duration: ["4n", "2n"],
-        notes: ["C4", "D4", "E4", "G4", "A4", "B4", "D5"],
-        velocity: 0.09,
+        every: 8,
+        probability: 0.12,
+        pattern: [0.24, 0, 0, 0, 0.1, 0, 0.04, 0, 0.16, 0, 0, 0, 0.12, 0, 0.04, 0],
+        duration: ["2n", "4n"],
+        notes: [
+          ["C4", "E4"],
+          ["D4", "G4"],
+          ["E4", "A4"],
+          ["B3", "D4", "A4"],
+        ],
+        velocity: 0.072,
         densityWeight: 0.1,
         energyWeight: 0.04,
         natureWeight: -0.22,
@@ -326,10 +342,10 @@ const CHILL_RECIPES = Object.freeze({
         type: "bass",
         function: "space",
         every: 32,
-        probability: 0.14,
+        probability: 0.06,
         duration: "2n",
         notes: ["C2", "A1", "F1", "G1"],
-        velocity: 0.08,
+        velocity: 0.045,
         energyWeight: 0.04,
         natureWeight: 0.06,
         filterBase: 240,
@@ -339,11 +355,11 @@ const CHILL_RECIPES = Object.freeze({
         id: "sleep-air",
         type: "air",
         function: "space",
-        every: 4,
-        probability: 0.16,
+        every: 16,
+        probability: 0.04,
         duration: "16n",
-        velocity: 0.03,
-        natureWeight: 0.28,
+        velocity: 0.012,
+        natureWeight: 0.1,
       },
     ],
     variations: [
@@ -501,13 +517,13 @@ class ChillGenerator {
     this.lastFaderChangeAt = performance.now();
   }
 
-  /** @param {{tickIndex?:number, grooveOn?:boolean, autoOn?:boolean, quiet?:boolean}=} context */
+  /** @param {{tickIndex?:number, pulseOn?:boolean, grooveOn?:boolean, autoOn?:boolean, quiet?:boolean}=} context */
   onTick(context = {}) {
     const tickIndex = Number.isFinite(context.tickIndex) ? context.tickIndex : this.tickIndex;
     const recipe = this.getRecipe();
     const recipeHash = hashString(recipe.id);
     const events = [];
-    const grooveActive = Boolean(context.grooveOn);
+    const grooveActive = Boolean(context.pulseOn ?? context.grooveOn);
     const maxDensity = recipe.transitionRules.maxDensity;
     const effectiveDensity = Math.min(maxDensity, this.config.faderB);
     const autoShape = context.autoOn ? this.getAutoVariation(recipe, tickIndex) : null;
@@ -602,7 +618,7 @@ class ChillGenerator {
       id: layer.id,
       notes: noteChoice,
       duration,
-      velocity: clamp01((layer.velocity ?? 0.3) + shape.energy * 0.16),
+      velocity: clamp01((layer.velocity ?? 0.3) + shape.energy * (layer.type === "piano" ? 0.055 : 0.08)),
       filterHz: layer.filterBase ? layer.filterBase + shape.energy * (layer.filterRange ?? 0) : undefined,
       tone: layer.tone ?? "felt",
       rollSec: ((layer.rollMs ?? 0) / 1000) * (0.55 + shape.nature * 0.75),
@@ -617,26 +633,38 @@ class ChillGenerator {
   buildPulseOverlay(tickIndex, shape) {
     const events = [];
     const step = tickIndex % 16;
-    const kickPattern = [0.8, 0, 0.04, 0, 0.16, 0, 0.42, 0, 0.5, 0, 0.08, 0, 0.16, 0.32, 0, 0.04];
-    const hatPattern = [0.1, 0.42, 0.16, 0.38, 0.08, 0.46, 0.14, 0.34, 0.12, 0.5, 0.14, 0.36, 0.08, 0.42, 0.18, 0.3];
-    const rootPattern = [0.28, 0, 0, 0, 0, 0, 0.18, 0, 0.2, 0, 0, 0, 0, 0.14, 0, 0];
+    const kickPattern = [0.46, 0, 0.02, 0, 0.08, 0, 0.2, 0, 0.26, 0, 0.04, 0, 0.08, 0.16, 0, 0.02];
+    const hatPattern = [0.04, 0.2, 0.06, 0.18, 0.04, 0.22, 0.06, 0.16, 0.04, 0.24, 0.06, 0.16, 0.04, 0.2, 0.08, 0.14];
+    const rootPattern = [0.16, 0, 0, 0, 0, 0, 0.08, 0, 0.1, 0, 0, 0, 0, 0.08, 0, 0];
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-kick") < clamp01(kickPattern[step] * (0.12 + shape.energy * 0.12))) {
-      events.push({ type: "kick", id: "pulse-kick", duration: "8n", velocity: 0.08 + shape.energy * 0.08, offset: 0.004 * shape.nature });
+    if (randomAt(this.config.seed, tickIndex, "pulse-kick") < clamp01(kickPattern[step] * (0.06 + shape.energy * 0.08))) {
+      events.push({
+        type: "kick",
+        id: "pulse-kick",
+        duration: "8n",
+        velocity: clamp01(0.032 + shape.energy * 0.034),
+        offset: (randomAt(this.config.seed, tickIndex, "pulse-kick-offset") - 0.5) * 0.012 * shape.nature,
+      });
     }
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-hat") < clamp01(hatPattern[step] * (0.12 + shape.density * 0.14))) {
-      events.push({ type: "hat", id: "pulse-hat", duration: "16n", velocity: 0.025 + shape.density * 0.04, offset: 0.01 * shape.nature });
+    if (randomAt(this.config.seed, tickIndex, "pulse-hat") < clamp01(hatPattern[step] * (0.08 + shape.energy * 0.08))) {
+      events.push({
+        type: "hat",
+        id: "pulse-hat",
+        duration: "32n",
+        velocity: clamp01(0.012 + shape.energy * 0.014),
+        offset: 0.01 * shape.nature + (randomAt(this.config.seed, tickIndex, "pulse-hat-offset") - 0.5) * 0.014,
+      });
     }
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.1 + shape.density * 0.12))) {
+    if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.06 + shape.energy * 0.08))) {
       events.push({
         type: "bass",
         id: "pulse-root",
-        notes: chooseAt(["F1", "A1", "C2", "D2"], this.config.seed, tickIndex, "pulse-root-pitch"),
+        notes: chooseAt(["C2", "A1", "D2", "G1"], this.config.seed, Math.floor(tickIndex / 16), "pulse-root-note"),
         duration: "8n",
-        velocity: 0.06 + shape.energy * 0.08,
-        filterHz: 260 + shape.energy * 420,
+        velocity: clamp01(0.034 + shape.energy * 0.026),
+        filterHz: 190 + shape.energy * 260,
         offset: 0.006 * shape.nature,
       });
     }
@@ -699,31 +727,31 @@ Tone.Transport.swing = 0.16;
 Tone.Transport.swingSubdivision = "8n";
 
 const limiter = new Tone.Limiter(-1).toDestination();
-const master = new Tone.Gain(0.82).connect(limiter);
+const master = new Tone.Gain(0.78).connect(limiter);
 
-const pianoRoom = new Tone.Reverb(4.2);
-pianoRoom.wet.value = 0.36;
-const pianoBus = new Tone.Gain(0.58).chain(pianoRoom, master);
+const pianoRoom = new Tone.Reverb(3.4);
+pianoRoom.wet.value = 0.26;
+const pianoBus = new Tone.Gain(0.66).chain(pianoRoom, master);
 
-const pianoBodyFilter = new Tone.Filter(1350, "lowpass");
+const pianoBodyFilter = new Tone.Filter(1050, "lowpass");
 const pianoBody = new Tone.PolySynth(Tone.Synth, {
   oscillator: { type: "triangle" },
-  envelope: { attack: 0.012, decay: 1.6, sustain: 0.05, release: 3.2 },
+  envelope: { attack: 0.008, decay: 1.25, sustain: 0.018, release: 2.35 },
 }).chain(pianoBodyFilter, pianoBus);
 
-const pianoBellFilter = new Tone.Filter(2200, "lowpass");
+const pianoBellFilter = new Tone.Filter(1750, "lowpass");
 const pianoBell = new Tone.PolySynth(Tone.FMSynth, {
-  harmonicity: 1.08,
-  modulationIndex: 0.72,
+  harmonicity: 1.04,
+  modulationIndex: 0.34,
   oscillator: { type: "sine" },
-  envelope: { attack: 0.004, decay: 0.28, sustain: 0, release: 1.6 },
-  modulationEnvelope: { attack: 0.004, decay: 0.18, sustain: 0, release: 0.8 },
+  envelope: { attack: 0.004, decay: 0.18, sustain: 0, release: 0.9 },
+  modulationEnvelope: { attack: 0.004, decay: 0.12, sustain: 0, release: 0.55 },
 }).chain(pianoBellFilter, pianoBus);
 
-const pianoHammerFilter = new Tone.Filter(1700, "bandpass");
+const pianoHammerFilter = new Tone.Filter(1280, "bandpass");
 const pianoHammer = new Tone.NoiseSynth({
   noise: { type: "brown" },
-  envelope: { attack: 0.001, decay: 0.024, sustain: 0, release: 0.01 },
+  envelope: { attack: 0.001, decay: 0.018, sustain: 0, release: 0.008 },
 }).chain(pianoHammerFilter, pianoBus);
 
 const leadFilter = new Tone.Filter(1400, "lowpass");
@@ -732,13 +760,14 @@ const lead = new Tone.PolySynth(Tone.Synth, {
   envelope: { attack: 0.03, decay: 0.24, sustain: 0.16, release: 1.3 },
 }).chain(leadFilter, master);
 
-const padFilter = new Tone.Filter(900, "lowpass");
-const padVerb = new Tone.Reverb(3.2);
-padVerb.wet.value = 0.42;
+const padFilter = new Tone.Filter(720, "lowpass");
+const padVerb = new Tone.Reverb(2.6);
+padVerb.wet.value = 0.14;
+const padBus = new Tone.Gain(0.18).chain(padVerb, master);
 const pad = new Tone.PolySynth(Tone.Synth, {
   oscillator: { type: "sine" },
-  envelope: { attack: 1.1, decay: 0.2, sustain: 0.82, release: 3.4 },
-}).chain(padFilter, padVerb, master);
+  envelope: { attack: 0.8, decay: 0.18, sustain: 0.28, release: 2.2 },
+}).chain(padFilter, padBus);
 
 const bass = new Tone.MonoSynth({
   oscillator: { type: "sawtooth" },
@@ -758,10 +787,11 @@ const hat = new Tone.NoiseSynth({
   envelope: { attack: 0.001, decay: 0.07, sustain: 0 },
 }).connect(master);
 
+const airGain = new Tone.Gain(0.16).connect(master);
 const air = new Tone.NoiseSynth({
   noise: { type: "pink" },
-  envelope: { attack: 0.01, decay: 0.18, sustain: 0 },
-}).connect(master);
+  envelope: { attack: 0.01, decay: 0.14, sustain: 0 },
+}).connect(airGain);
 
 //------------------------------------------------------
 // Runtime state, guard rail, adapter
@@ -857,12 +887,12 @@ function asNoteList(notes) {
 
 function toneProfile(tone) {
   if (tone === "glass") {
-    return { body: 0.74, bell: 0.28, hammer: 0.22, cutoff: 1.1, release: 0.94, room: 1.1 };
+    return { body: 0.78, bell: 0.14, hammer: 0.14, cutoff: 0.9, release: 1.04, room: 1.02 };
   }
   if (tone === "memory") {
-    return { body: 0.58, bell: 0.18, hammer: 0.12, cutoff: 0.72, release: 1.24, room: 1.18 };
+    return { body: 0.7, bell: 0.08, hammer: 0.08, cutoff: 0.62, release: 1.22, room: 1.08 };
   }
-  return { body: 0.86, bell: 0.12, hammer: 0.18, cutoff: 0.86, release: 1.08, room: 1 };
+  return { body: 0.94, bell: 0.055, hammer: 0.15, cutoff: 0.76, release: 1.12, room: 0.96 };
 }
 
 function schedulePianoEvent(event, time, velocity) {
@@ -870,16 +900,16 @@ function schedulePianoEvent(event, time, velocity) {
   if (notes.length === 0) return;
 
   const profile = toneProfile(event.tone);
-  const roll = Math.min(0.032, Math.max(0, event.rollSec ?? 0));
+  const roll = Math.min(0.044, Math.max(0, event.rollSec ?? 0));
   const pedal = clamp01(event.pedal ?? 0.58);
   const room = clamp01(event.room ?? 0.54);
   const baseCutoff = (event.filterHz ?? 1200) * profile.cutoff;
-  const bodyDur = pedal > 0.72 ? "1m" : event.duration;
+  const bodyDur = pedal > 0.78 ? "2n" : event.duration;
   const bellDur = event.tone === "memory" ? "8n" : "4n";
 
-  pianoRoom.wet.setValueAtTime(Math.min(0.58, 0.22 + room * 0.34 * profile.room), time);
-  pianoBodyFilter.frequency.setValueAtTime(Math.max(520, Math.min(2400, baseCutoff)), time);
-  pianoBellFilter.frequency.setValueAtTime(Math.max(1100, Math.min(3600, baseCutoff * 1.74)), time);
+  pianoRoom.wet.setValueAtTime(Math.min(0.42, 0.14 + room * 0.24 * profile.room), time);
+  pianoBodyFilter.frequency.setValueAtTime(Math.max(420, Math.min(1900, baseCutoff)), time);
+  pianoBellFilter.frequency.setValueAtTime(Math.max(900, Math.min(2800, baseCutoff * 1.46)), time);
 
   notes.forEach((note, index) => {
     const noteTime = time + (event.offset ?? 0) + index * roll;
@@ -1011,7 +1041,7 @@ function previewEventStream(options = {}) {
     preview
       .onTick({
         tickIndex: tick,
-        grooveOn: Boolean(options.grooveOn),
+        pulseOn: Boolean(options.pulseOn ?? options.grooveOn),
         autoOn: Boolean(options.autoOn),
         quiet: false,
       })
@@ -1085,6 +1115,7 @@ const mainLoop = new Tone.Loop((time) => {
   watchRuntimeLoad();
   const events = generator.onTick({
     tickIndex: transportStep,
+    pulseOn: grooveOn,
     grooveOn,
     autoOn,
     quiet: runtimeHealth.quiet,
@@ -1103,8 +1134,12 @@ function syncControlsFromConfig() {
 function updateUi() {
   ui.seedLabel.textContent = `Seed ${generator.config.seed}`;
   ui.moodLabel.textContent = generator.config.mood;
-  ui.modeLabel.textContent = grooveOn ? "groove" : generator.config.mode;
+  ui.modeLabel.textContent = grooveOn ? "pulse" : generator.config.mode;
   ui.guardLabel.textContent = runtimeHealth.quiet ? "quiet" : "stable";
+  ui.acidBtn.textContent = grooveOn ? "PULSE ON" : "PULSE";
+  ui.autoBtn.textContent = autoOn ? "AUTO ON" : "AUTO";
+  ui.acidBtn.setAttribute("aria-pressed", String(grooveOn));
+  ui.autoBtn.setAttribute("aria-pressed", String(autoOn));
   ui.acidBtn.classList.toggle("is-active", grooveOn);
   ui.autoBtn.classList.toggle("is-active", autoOn);
   ui.startBtn.classList.toggle("is-active", Tone.Transport.state === "started");
@@ -1143,10 +1178,10 @@ function startAutoDrift() {
   const jitterA = (randomAt(generator.config.seed, autoStep, "auto-a") - 0.5) * 0.06;
   const jitterB = (randomAt(generator.config.seed, autoStep, "auto-b") - 0.5) * 0.07;
   const jitterC = (randomAt(generator.config.seed, autoStep, "auto-c") - 0.5) * 0.05;
-  const grooveLift = randomAt(generator.config.seed, autoStep, "auto-groove") < 0.18 ? 0.02 : 0;
+  const pulseLift = randomAt(generator.config.seed, autoStep, "auto-pulse") < 0.12 ? 0.012 : 0;
 
-  const nextA = generator.config.faderA + (target.faderA - generator.config.faderA) * 0.08 + jitterA + grooveLift;
-  const nextB = generator.config.faderB + (target.faderB - generator.config.faderB) * 0.08 + jitterB + grooveLift * 0.6;
+  const nextA = generator.config.faderA + (target.faderA - generator.config.faderA) * 0.08 + jitterA + pulseLift;
+  const nextB = generator.config.faderB + (target.faderB - generator.config.faderB) * 0.08 + jitterB + pulseLift * 0.4;
   const nextC = generator.config.faderC + (target.faderC - generator.config.faderC) * 0.1 + jitterC;
   generator.applyFaderState(nextA, nextB, nextC);
   syncControlsFromConfig();

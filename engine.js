@@ -1309,9 +1309,28 @@ function scheduleSessionBassBar(options = {}) {
   };
 }
 
+function isNativeAudioContext(value) {
+  return !!(
+    value &&
+    typeof value.createGain === "function" &&
+    typeof value.createDynamicsCompressor === "function"
+  );
+}
+
 function getToneAudioContext() {
   const context = typeof Tone.getContext === "function" ? Tone.getContext() : Tone.context;
-  return context?.rawContext ?? context?._context?.rawContext ?? context;
+  const candidates = [
+    context?.rawContext,
+    context?._context?.rawContext,
+    context?._context,
+    context?.context?.rawContext,
+    context?.context,
+    Tone.context?.rawContext,
+    Tone.context?._context?.rawContext,
+    Tone.context?._context,
+    context,
+  ];
+  return candidates.find(isNativeAudioContext) || null;
 }
 
 function setSessionState(options = {}) {

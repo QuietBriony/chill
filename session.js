@@ -28,6 +28,7 @@ let drumsOn = false;
 let bassOn = true;
 let sessionAuto = false;
 let drumLoadStarted = false;
+let drumLoadPromise = null;
 let lastBassEventCount = 0;
 
 const originalStart = refs.startBtn.onclick;
@@ -96,13 +97,67 @@ function sessionShape(barIndex = drumBar) {
   };
 }
 
+function trioSnapshot() {
+  const referenceId = refs.referenceSelect.value || "piano-jazz-chill";
+  const touch = Number(refs.energy.value);
+  const phrase = Number(refs.creation.value);
+  const room = Number(refs.nature.value);
+  const shape = sessionShape(drumBar);
+  let bassPreview = null;
+  let drumSnapshot = {
+    loaded: false,
+    status: drumLoadStarted ? "loading" : "idle",
+  };
+
+  try {
+    bassPreview = window.chillAdapter?.session?.previewBassBar?.({
+      bpm: SESSION_BPM,
+      seed: currentSeed(),
+      referenceId,
+      barIndex: drumBar,
+      touch,
+      phrase,
+      room,
+      bassOn,
+    }) ?? null;
+  } catch (error) {
+    bassPreview = { error: error.message };
+  }
+
+  try {
+    drumSnapshot = drumAdapter?.snapshot?.() ?? drumSnapshot;
+  } catch (error) {
+    drumSnapshot = { ...drumSnapshot, error: error.message };
+  }
+
+  return {
+    version: 1,
+    role: "chill-piano-bass-drum-trio",
+    bassOn,
+    drumsOn,
+    auto: sessionAuto,
+    barIndex: drumBar,
+    seed: currentSeed(),
+    referenceId,
+    controls: { touch, phrase, room },
+    sessionShape: shape,
+    bassPreview,
+    drumAdapter: drumSnapshot,
+    statuses: {
+      session: refs.sessionStatus?.textContent || "",
+      bass: refs.bassStatus?.textContent || "",
+      drums: refs.drumStatus?.textContent || "",
+    },
+  };
+}
+
 async function ensureDrums() {
   if (drumAdapter) return drumAdapter;
-  if (drumLoadStarted) return null;
+  if (drumLoadPromise) return drumLoadPromise;
   drumLoadStarted = true;
   setText(refs.drumStatus, "drums loading");
 
-  try {
+  drumLoadPromise = (async () => {
     const module = await import(`${sessionBasePath()}src/session-adapter.js`);
     const audioContext = window.chillAdapter?.session?.getAudioContext?.() ?? null;
     drumAdapter = module.createDrumFloorSessionAdapter({
@@ -114,11 +169,16 @@ async function ensureDrums() {
     await drumAdapter.load();
     setText(refs.drumStatus, "soft pocket ready");
     return drumAdapter;
+  })();
+
+  try {
+    return await drumLoadPromise;
   } catch (error) {
     console.warn("[chill session] drum-floor unavailable", error);
     setText(refs.drumStatus, "drums unavailable");
     drumsOn = false;
     drumLoadStarted = false;
+    drumLoadPromise = null;
     updateSessionUi();
     return null;
   }
@@ -143,7 +203,7 @@ function syncSessionState() {
 function ensureDrumLoop() {
   if (drumLoop) return drumLoop;
   drumLoop = new Tone.Loop((time) => {
-  if (bassOn) {
+    if (bassOn) {
       const bassResult = window.chillAdapter?.session?.scheduleBassBar?.({
         bpm: SESSION_BPM,
         seed: currentSeed(),
@@ -179,21 +239,23 @@ function ensureDrumLoop() {
 
 refs.startBtn.onclick = async (event) => {
   syncSessionState();
-  await ensureDrums();
+  await originalStart?.call(refs.startBtn, event);
+  setText(refs.sessionStatus, "session playing");
+
   const loop = ensureDrumLoop();
   loop.stop(0);
   loop.start(0);
-  if (drumAdapter) {
+
+  const adapter = await ensureDrums();
+  if (adapter) {
     try {
-      await drumAdapter.start();
+      await adapter.start();
     } catch (error) {
       console.warn("[chill session] drum start failed; piano will continue", error);
       drumsOn = false;
       setText(refs.drumStatus, "drums unavailable");
     }
   }
-  await originalStart?.call(refs.startBtn, event);
-  setText(refs.sessionStatus, "session playing");
   updateSessionUi();
 };
 
@@ -252,6 +314,10 @@ refs.seedBtn.addEventListener("click", () => {
 [refs.energy, refs.creation, refs.nature, refs.referenceSelect].forEach((input) => {
   input.addEventListener("input", syncSessionState);
   input.addEventListener("change", syncSessionState);
+});
+
+window.chillTrioSession = Object.freeze({
+  snapshot: trioSnapshot,
 });
 
 syncSessionState();

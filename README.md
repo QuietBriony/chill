@@ -44,6 +44,7 @@ Current recipes:
 - `piano-jazz-chill` (`Quiet Piano`): quiet room chords, long rests, felt-like synthetic piano
 - `rainy-lofi-room` (`Glass Piano`): transparent add/sus voicing, cool room, reduced air
 - `soft-solo-drift` (`Memory Piano`): distant memory piano, rare strange repeats, no aggressive rhythm
+- `soft-melody-piano` (`Soft Melody`): soft piano answers and memory dots, still low-density and behind the main runtime
 
 Button meaning:
 - `PULSE`: optional soft kick / hat / bass floor under the piano. It is off by default and should not become the main feature.

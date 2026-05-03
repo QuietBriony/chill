@@ -58,6 +58,7 @@ Stack separation:
 
 Live preview:
 - GitHub Pages: https://quietbriony.github.io/chill/
+- Quiet Piano Trio session: https://quietbriony.github.io/chill/session.html
 - Pages source: `main` branch, repository root.
 
 Public runtime contracts:

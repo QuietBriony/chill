@@ -1183,6 +1183,44 @@ function runDeterminismCheck(options = {}) {
   };
 }
 
+function getToneAudioContext() {
+  const context = typeof Tone.getContext === "function" ? Tone.getContext() : Tone.context;
+  return context?.rawContext ?? context?._context?.rawContext ?? context;
+}
+
+function setSessionState(options = {}) {
+  if (Number.isFinite(options.seed)) generator.setSeed(options.seed);
+  if (options.referenceId && CHILL_RECIPES[options.referenceId]) generator.setReference(options.referenceId);
+  const nextA = options.touch ?? options.faderA ?? generator.config.faderA;
+  const nextB = options.phrase ?? options.faderB ?? generator.config.faderB;
+  const nextC = options.room ?? options.faderC ?? generator.config.faderC;
+  generator.applyFaderState(nextA, nextB, nextC);
+  const bpm = Number(options.bpm);
+  if (Number.isFinite(bpm)) Tone.Transport.bpm.rampTo(Math.max(54, Math.min(120, bpm)), 0.2);
+  syncControlsFromConfig();
+  updateUi();
+  return { ...generator.config, bpm: Tone.Transport.bpm.value };
+}
+
+function scheduleSessionTick(options = {}) {
+  const events = generator.onTick({
+    tickIndex: Number.isFinite(options.tickIndex) ? options.tickIndex : transportStep,
+    pulseOn: Boolean(options.pulseOn ?? options.grooveOn),
+    autoOn: Boolean(options.autoOn),
+    quiet: runtimeHealth.quiet,
+  });
+  const time = Number.isFinite(options.time) ? options.time : Tone.now();
+  events.forEach((event) => scheduleEvent(event, time));
+  return events;
+}
+
+function panicSession() {
+  Tone.Transport.stop();
+  enterQuietMode("session panic");
+  updateUi();
+  return { quiet: runtimeHealth.quiet, status: runtimeHealth.lastScheduleResult };
+}
+
 const chillAdapter = {
   STORAGE_KEYS,
   recipes: CHILL_RECIPES,
@@ -1191,6 +1229,12 @@ const chillAdapter = {
   diagnostics: {
     previewEventStream,
     runDeterminismCheck,
+  },
+  session: {
+    getAudioContext: getToneAudioContext,
+    scheduleTick: scheduleSessionTick,
+    setSessionState,
+    panic: panicSession,
   },
   getRuntimeConfig: () => ({ ...generator.config }),
   setIntent(intent) {

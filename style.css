@@ -179,6 +179,32 @@ input[type="range"] {
   border: 1px solid rgba(235, 210, 160, 0.1);
 }
 
+.session-panel {
+  width: min(94vw, 520px);
+}
+
+.session-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.session-strip span {
+  padding: 8px 7px;
+  border-radius: 14px;
+  background: rgba(10, 12, 10, 0.26);
+  border: 1px solid rgba(235, 210, 160, 0.1);
+  font-size: 11px;
+  line-height: 1.35;
+  color: #e8dcc5;
+}
+
+.panic-button {
+  color: #ffe8d6;
+  background: rgba(112, 49, 35, 0.5) !important;
+}
+
 button,
 select {
   -webkit-tap-highlight-color: transparent;

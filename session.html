@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chill v3.3 - Quiet Piano Trio</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <!-- Tone.js CDN (14.7.77 stable, existing dependency only) -->
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+  </head>
+  <body data-page="session">
+    <canvas id="bg"></canvas>
+
+    <div class="panel session-panel">
+      <h1>
+        Chill v3.3
+        <span>Quiet Piano Trio</span>
+      </h1>
+
+      <p class="listening-note">
+        Quiet synthetic piano with optional soft drum-floor pocket.
+      </p>
+
+      <div class="controls">
+        <button id="startBtn">START</button>
+        <button id="stopBtn">STOP</button>
+        <button id="panicBtn" class="panic-button">PANIC</button>
+      </div>
+
+      <div class="controls">
+        <button id="acidBtn" aria-pressed="false">DRUMS</button>
+        <button id="autoBtn" aria-pressed="false">AUTO</button>
+      </div>
+
+      <p class="mode-note">
+        DRUMS schedules drum-floor Soft Pocket bars. AUTO drifts piano room and drum space.
+      </p>
+
+      <div class="reference-row">
+        <select id="referenceSelect" aria-label="Reference">
+          <option value="piano-jazz-chill">Quiet Piano</option>
+          <option value="rainy-lofi-room">Glass Piano</option>
+          <option value="soft-solo-drift">Memory Piano</option>
+        </select>
+        <button id="seedBtn">NEW SEED</button>
+      </div>
+
+      <div class="faders">
+        <label>
+          <span class="fader-name">Touch</span>
+          <span class="fader-hint">piano attack / drum energy</span>
+          <input type="range" id="energy" min="0" max="1" step="0.01" value="0.32" />
+        </label>
+        <label>
+          <span class="fader-name">Phrase</span>
+          <span class="fader-hint">answers / ghost glue</span>
+          <input type="range" id="creation" min="0" max="1" step="0.01" value="0.24" />
+        </label>
+        <label>
+          <span class="fader-name">Room</span>
+          <span class="fader-hint">rest / space</span>
+          <input type="range" id="nature" min="0" max="1" step="0.01" value="0.78" />
+        </label>
+      </div>
+
+      <div class="session-strip" aria-live="polite">
+        <span id="sessionStatus">session ready</span>
+        <span id="drumStatus">drums loading</span>
+        <span id="sessionBar">bar 0</span>
+      </div>
+
+      <div class="runtime-status" aria-live="polite">
+        <span id="seedLabel">Seed</span>
+        <span id="moodLabel">calm</span>
+        <span id="modeLabel">session</span>
+        <span id="guardLabel">stable</span>
+      </div>
+    </div>
+
+    <script src="./engine.js"></script>
+    <script type="module" src="./session.js"></script>
+  </body>
+</html>

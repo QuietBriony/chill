@@ -54,6 +54,8 @@ Public runtime contracts:
 - `ChillRecipe`
 - `ChillGenerator`
 - `window.chillAdapter`
+- `window.chillAdapter.diagnostics.previewEventStream()`
+- `window.chillAdapter.diagnostics.runDeterminismCheck()`
 
 Fixed storage keys:
 - `chill:session:v1`
@@ -62,6 +64,7 @@ Fixed storage keys:
 
 Acceptance gates before intentional reactivation:
 - Same `seed` + same `referenceId` should produce the same event stream for the same fader state.
+- `window.chillAdapter.diagnostics.runDeterminismCheck()` should pass for the default 16-bar preview.
 - Fader changes should affect pulse / voicing / room drift within the next scheduler ticks.
 - Audio errors, late ticks, or memory pressure should enter quiet recovery rather than hard failing.
 - iOS Safari start must stay tied to a user gesture.

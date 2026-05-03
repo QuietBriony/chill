@@ -33,7 +33,8 @@ Implemented direction:
 - Public-friendly interaction shape from namima
 - Guarded degradation / quiet recovery rules from drum-floor
 - 3-fader identity retuned as Touch / Phrase / Room
-- PULSE and AUTO preserved as low-density rhythm injection and deterministic room drift
+- PULSE preserved as low-density rhythm injection
+- AUTO upgraded into a deterministic Flow Director for settle / breathe / lift / decrescendo / recover
 
 3-fader meaning:
 - `Touch`: hammer contour / brightness / chord attack
@@ -48,8 +49,8 @@ Current recipes:
 
 Button meaning:
 - `PULSE`: optional soft kick / hat / bass floor under the piano. It is off by default and should not become the main feature.
-- `AUTO`: slow changes to voicing, rest, and room. It should not suddenly turn the radio into a different track.
-- `BASS` on the session page is a sparse synthetic upright-ish root/fifth layer hosted by `chill`, not `Music` or `drum-floor`.
+- `AUTO`: Flow Director. It shapes pressure, rest, decrescendo, and room without suddenly turning the radio into a different track.
+- `BASS` on the session page is an elastic quiet synthetic bass layer hosted by `chill`, not `Music` or `drum-floor`.
 
 Stack separation:
 - `Music`: experimental / edge reference-driven rig
@@ -63,9 +64,10 @@ Live preview:
 - Pages source: `main` branch, repository root.
 
 Quiet Piano Trio session:
-- `BASS`: sparse synthetic upright-ish roots/fifths hosted by `chill`.
+- `BASS`: elastic quiet roots, fifths, approaches, glides, and ghost notes hosted by `chill`.
 - `DRUMS`: optional drum-floor soft pocket bars.
-- `AUTO`: slow piano room / drum space drift without changing the track identity.
+- `AUTO`: Flow Director for natural breath, decrescendo, pressure control, and drum/bass space.
+- Listening score is local metadata only: human flow/dynamics/bass/fatigue scores plus the trio snapshot. It stores no audio.
 
 Public runtime contracts:
 - `ChillRuntimeConfig`
@@ -77,7 +79,7 @@ Public runtime contracts:
 - `window.chillAdapter.diagnostics.runDeterminismCheck()`
 
 Trio snapshot:
-- `window.chillTrioSession.snapshot()` is read-only and returns `bassOn`, `drumsOn`, `auto`, `barIndex`, `seed`, `sessionShape`, `bassPreview`, and the drum-floor adapter snapshot when loaded.
+- `window.chillTrioSession.snapshot()` is read-only and returns `bassOn`, `drumsOn`, `auto`, `flow`, `mixMeter`, `pressureStatus`, `bassPersona`, `barIndex`, `seed`, `sessionShape`, `bassPreview`, and the drum-floor adapter snapshot when loaded.
 - It does not start audio, schedule notes, click controls, arm drum-floor candidates, or mutate Tone transport.
 
 Fixed storage keys:
@@ -96,3 +98,5 @@ Acceptance gates before intentional reactivation:
 - `Touch` must not act as a direct loudness boost.
 - `Phrase` must not make melody the foreground for too long.
 - `Room` should increase rest, looseness, and room feel.
+- `AUTO` should produce a decrescendo or soften phase within a 16-bar flow preview.
+- `BASS` should have personality without becoming a lead instrument.

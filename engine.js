@@ -54,6 +54,7 @@ const STORAGE_KEYS = Object.freeze({
   session: "chill:session:v1",
   recipe: "chill:recipe:v1",
   lastSeed: "chill:lastSeed",
+  listeningScore: "chill:listening-score:v1",
 });
 
 const DEFAULT_CONFIG = Object.freeze({
@@ -575,6 +576,98 @@ function intentToFaders(intent = {}) {
   };
 }
 
+const FLOW_STATES = Object.freeze(["settle", "breathe", "lift", "decrescendo", "recover"]);
+
+function pressureTargetValue(target) {
+  if (target === "safe") return 0.34;
+  if (target === "full") return 0.68;
+  return 0.52;
+}
+
+function pressureStatus(value) {
+  if (value < 0.42) return "safe";
+  if (value < 0.64) return "warm";
+  return "full";
+}
+
+function flowStateForBar(seed, referenceId, barIndex) {
+  const cycle = 16;
+  const phraseBar = Math.max(0, Math.floor(barIndex)) % cycle;
+  if (phraseBar <= 2) return "settle";
+  if (phraseBar <= 7) return "breathe";
+  if (phraseBar <= 11) return "lift";
+  if (phraseBar <= 14) return "decrescendo";
+  return "recover";
+}
+
+function buildFlowState(options = {}) {
+  const seed = normalizeSeed(options.seed ?? DEFAULT_CONFIG.seed);
+  const referenceId = CHILL_RECIPES[options.referenceId] ? options.referenceId : DEFAULT_CONFIG.referenceId;
+  const tickIndex = Math.max(0, Math.floor(Number(options.tickIndex) || 0));
+  const barIndex = Math.max(0, Math.floor(Number(options.barIndex) || Math.floor(tickIndex / 16)));
+  const touch = clamp01(options.touch ?? options.faderA ?? DEFAULT_CONFIG.faderA);
+  const phrase = clamp01(options.phrase ?? options.faderB ?? DEFAULT_CONFIG.faderB);
+  const room = clamp01(options.room ?? options.faderC ?? DEFAULT_CONFIG.faderC);
+  const enabled = options.flowOn !== false;
+  const state = enabled ? flowStateForBar(seed, referenceId, barIndex) : "settle";
+  const target = pressureTargetValue(options.pressureTarget);
+  const basePressure = clamp01(touch * 0.34 + phrase * 0.28 + (1 - room) * 0.28 + target * 0.1);
+  const wobble = enabled ? (randomAt(seed, barIndex, `${referenceId}:flow-wobble`) - 0.5) * 0.08 : 0;
+  const stateLift = {
+    settle: -0.1,
+    breathe: 0,
+    lift: 0.12,
+    decrescendo: -0.18,
+    recover: -0.06,
+  }[state];
+  const pressure = clamp01(basePressure + stateLift + wobble);
+  const decrescendo = state === "decrescendo";
+  const soften = state === "settle" || state === "recover";
+  const lift = state === "lift";
+
+  if (!enabled) {
+    return {
+      enabled: false,
+      state: "settle",
+      barIndex,
+      pressure: clamp01(basePressure),
+      pressureStatus: pressureStatus(basePressure),
+      decrescendo: false,
+      densityDelta: 0,
+      energyDelta: 0,
+      natureDelta: 0,
+      velocityScale: 1,
+      pianoVelocityScale: 1,
+      bassVelocityScale: 1,
+      drumDensityScale: 1,
+      restLift: 0,
+      bassActivity: clamp01(phrase * 0.34 + touch * 0.16 + (1 - room) * 0.12),
+      rollLift: 0,
+      roomLift: 0,
+    };
+  }
+
+  return {
+    enabled,
+    state,
+    barIndex,
+    pressure,
+    pressureStatus: pressureStatus(pressure),
+    decrescendo,
+    densityDelta: decrescendo ? -0.16 : soften ? -0.08 : lift ? 0.04 : -0.02,
+    energyDelta: decrescendo ? -0.14 : soften ? -0.05 : lift ? 0.05 : 0,
+    natureDelta: decrescendo ? 0.1 : state === "breathe" ? 0.05 : soften ? 0.06 : 0.02,
+    velocityScale: clamp01(decrescendo ? 0.68 : soften ? 0.82 : lift ? 0.96 : 0.9),
+    pianoVelocityScale: clamp01(decrescendo ? 0.72 : soften ? 0.86 : lift ? 0.98 : 0.92),
+    bassVelocityScale: clamp01(decrescendo ? 0.54 : soften ? 0.72 : lift ? 0.92 : 0.84),
+    drumDensityScale: clamp01(decrescendo ? 0.48 : soften ? 0.68 : lift ? 0.86 : 0.76),
+    restLift: clamp01(decrescendo ? 0.42 + room * 0.18 : soften ? 0.24 + room * 0.12 : room * 0.08),
+    bassActivity: clamp01((phrase * 0.42 + touch * 0.2 + (1 - room) * 0.2) * (decrescendo ? 0.28 : lift ? 0.94 : 0.72)),
+    rollLift: decrescendo ? 0.012 : state === "breathe" ? 0.006 : 0,
+    roomLift: decrescendo ? 0.09 : state === "breathe" ? 0.05 : soften ? 0.04 : 0,
+  };
+}
+
 function loadConfig() {
   const storedSession = safeJsonRead(STORAGE_KEYS.session, {});
   const storedSeedRaw = safeStorageRead(STORAGE_KEYS.lastSeed);
@@ -638,13 +731,24 @@ class ChillGenerator {
     const grooveActive = Boolean(context.pulseOn ?? context.grooveOn);
     const maxDensity = recipe.transitionRules.maxDensity;
     const effectiveDensity = Math.min(maxDensity, this.config.faderB);
+    const flow = buildFlowState({
+      seed: this.config.seed,
+      referenceId: recipe.id,
+      tickIndex,
+      touch: this.config.faderA,
+      phrase: this.config.faderB,
+      room: this.config.faderC,
+      flowOn: Boolean(context.flowOn ?? context.autoOn),
+      pressureTarget: context.pressureTarget,
+    });
     const autoShape = context.autoOn ? this.getAutoVariation(recipe, tickIndex) : null;
-    const density = clamp01(effectiveDensity + (autoShape?.densityDelta ?? 0));
-    const energy = clamp01(this.config.faderA + (autoShape?.energyDelta ?? 0));
-    const nature = clamp01(this.config.faderC + (autoShape?.natureDelta ?? 0));
+    const density = clamp01(effectiveDensity + (autoShape?.densityDelta ?? 0) + flow.densityDelta);
+    const energy = clamp01(this.config.faderA + (autoShape?.energyDelta ?? 0) + flow.energyDelta);
+    const nature = clamp01(this.config.faderC + (autoShape?.natureDelta ?? 0) + flow.natureDelta);
 
     recipe.layers.forEach((layer) => {
       if (tickIndex % layer.every !== 0) return;
+      if (layer.type !== "air" && randomAt(this.config.seed + recipeHash, tickIndex, `${layer.id}:flow-rest`) < flow.restLift * 0.28) return;
 
       const patternPulse = Array.isArray(layer.pattern)
         ? layer.pattern[tickIndex % layer.pattern.length]
@@ -654,14 +758,14 @@ class ChillGenerator {
         density * (layer.densityWeight ?? 0) +
         energy * (layer.energyWeight ?? 0) +
         nature * (layer.natureWeight ?? 0);
-      const chance = clamp01(weightedChance * patternPulse);
+      const chance = clamp01(weightedChance * patternPulse * (1 - flow.restLift * (layer.type === "piano" ? 0.18 : 0.34)));
 
       if (randomAt(this.config.seed + recipeHash, tickIndex, layer.id) > chance) return;
-      events.push(this.buildEvent(layer, tickIndex, { density, energy, nature }));
+      events.push(this.buildEvent(layer, tickIndex, { density, energy, nature, flow }));
     });
 
     if (grooveActive) {
-      events.push(...this.buildPulseOverlay(tickIndex, { density, energy, nature }));
+      events.push(...this.buildPulseOverlay(tickIndex, { density, energy, nature, flow }));
     }
 
     this.tickIndex = tickIndex + 1;
@@ -730,12 +834,12 @@ class ChillGenerator {
       id: layer.id,
       notes: noteChoice,
       duration,
-      velocity: clamp01((layer.velocity ?? 0.3) + shape.energy * (layer.type === "piano" ? 0.055 : 0.08)),
-      filterHz: layer.filterBase ? layer.filterBase + shape.energy * (layer.filterRange ?? 0) : undefined,
+      velocity: clamp01(((layer.velocity ?? 0.3) + shape.energy * (layer.type === "piano" ? 0.055 : 0.08)) * (layer.type === "piano" ? shape.flow.pianoVelocityScale : shape.flow.velocityScale)),
+      filterHz: layer.filterBase ? layer.filterBase + shape.energy * (layer.filterRange ?? 0) - (shape.flow.decrescendo ? 90 : 0) : undefined,
       tone: layer.tone ?? "felt",
-      rollSec: ((layer.rollMs ?? 0) / 1000) * (0.55 + shape.nature * 0.75),
-      pedal: clamp01((layer.pedal ?? 0.52) + shape.nature * 0.18),
-      room: clamp01((layer.room ?? 0.48) + shape.nature * 0.16),
+      rollSec: ((layer.rollMs ?? 0) / 1000) * (0.55 + shape.nature * 0.75) + shape.flow.rollLift,
+      pedal: clamp01((layer.pedal ?? 0.52) + shape.nature * 0.18 + (shape.flow.decrescendo ? 0.08 : 0)),
+      room: clamp01((layer.room ?? 0.48) + shape.nature * 0.16 + shape.flow.roomLift),
       offset:
         (randomAt(this.config.seed, tickIndex, `${layer.id}:humanize`) - 0.5) * (layer.humanize ?? 0) +
         ((tickIndex % 4 === 2 || tickIndex % 4 === 3) ? (layer.swingPush ?? 0) * shape.nature : 0),
@@ -749,33 +853,35 @@ class ChillGenerator {
     const hatPattern = [0.04, 0.2, 0.06, 0.18, 0.04, 0.22, 0.06, 0.16, 0.04, 0.24, 0.06, 0.16, 0.04, 0.2, 0.08, 0.14];
     const rootPattern = [0.16, 0, 0, 0, 0, 0, 0.08, 0, 0.1, 0, 0, 0, 0, 0.08, 0, 0];
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-kick") < clamp01(kickPattern[step] * (0.06 + shape.energy * 0.08))) {
+    const pulseDensity = shape.flow.drumDensityScale;
+
+    if (randomAt(this.config.seed, tickIndex, "pulse-kick") < clamp01(kickPattern[step] * (0.06 + shape.energy * 0.08) * pulseDensity)) {
       events.push({
         type: "kick",
         id: "pulse-kick",
         duration: "8n",
-        velocity: clamp01(0.032 + shape.energy * 0.034),
+        velocity: clamp01((0.032 + shape.energy * 0.034) * shape.flow.velocityScale),
         offset: (randomAt(this.config.seed, tickIndex, "pulse-kick-offset") - 0.5) * 0.012 * shape.nature,
       });
     }
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-hat") < clamp01(hatPattern[step] * (0.08 + shape.energy * 0.08))) {
+    if (randomAt(this.config.seed, tickIndex, "pulse-hat") < clamp01(hatPattern[step] * (0.08 + shape.energy * 0.08) * pulseDensity)) {
       events.push({
         type: "hat",
         id: "pulse-hat",
         duration: "32n",
-        velocity: clamp01(0.012 + shape.energy * 0.014),
+        velocity: clamp01((0.012 + shape.energy * 0.014) * shape.flow.velocityScale),
         offset: 0.01 * shape.nature + (randomAt(this.config.seed, tickIndex, "pulse-hat-offset") - 0.5) * 0.014,
       });
     }
 
-    if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.06 + shape.energy * 0.08))) {
+    if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.06 + shape.energy * 0.08) * shape.flow.bassActivity)) {
       events.push({
         type: "bass",
         id: "pulse-root",
         notes: chooseAt(["C2", "A1", "D2", "G1"], this.config.seed, Math.floor(tickIndex / 16), "pulse-root-note"),
         duration: "8n",
-        velocity: clamp01(0.034 + shape.energy * 0.026),
+        velocity: clamp01((0.034 + shape.energy * 0.026) * shape.flow.bassVelocityScale),
         filterHz: 190 + shape.energy * 260,
         offset: 0.006 * shape.nature,
       });
@@ -1163,6 +1269,8 @@ function previewEventStream(options = {}) {
         tickIndex: tick,
         pulseOn: Boolean(options.pulseOn ?? options.grooveOn),
         autoOn: Boolean(options.autoOn),
+        flowOn: Boolean(options.flowOn ?? options.autoOn),
+        pressureTarget: options.pressureTarget,
         quiet: false,
       })
       .forEach((event) => events.push(compactEvent(event, tick)));
@@ -1191,8 +1299,62 @@ function runDeterminismCheck(options = {}) {
   };
 }
 
+function previewFlow(options = {}) {
+  const bars = Math.max(1, Math.min(64, Math.floor(options.bars ?? 16)));
+  const startBar = Math.max(0, Math.floor(Number(options.startBar ?? options.barIndex) || 0));
+  const config = buildPreviewConfig({
+    referenceId: options.referenceId,
+    seed: options.seed,
+    faderA: options.touch ?? options.faderA,
+    faderB: options.phrase ?? options.faderB,
+    faderC: options.room ?? options.faderC,
+  });
+  const flowBars = [];
+
+  for (let index = 0; index < bars; index += 1) {
+    const barIndex = startBar + index;
+    const flow = buildFlowState({
+      seed: config.seed,
+      referenceId: config.referenceId,
+      barIndex,
+      touch: config.faderA,
+      phrase: config.faderB,
+      room: config.faderC,
+      flowOn: options.flowOn ?? true,
+      pressureTarget: options.pressureTarget,
+    });
+    const pianoDensity = Number(clamp01(config.faderB * 0.5 + (1 - flow.restLift) * 0.28 + flow.pressure * 0.12).toFixed(4));
+    const bassDensity = Number(clamp01(flow.bassActivity * (flow.decrescendo ? 0.35 : 0.78)).toFixed(4));
+    const drumDensity = Number(clamp01(flow.drumDensityScale * (0.36 + config.faderB * 0.22)).toFixed(4));
+    flowBars.push({
+      barIndex,
+      state: flow.state,
+      pressure: Number(flow.pressure.toFixed(4)),
+      pressureStatus: flow.pressureStatus,
+      decrescendo: flow.decrescendo,
+      pianoDensity,
+      bassDensity,
+      drumDensity,
+      restLift: Number(flow.restLift.toFixed(4)),
+      bassActivity: Number(flow.bassActivity.toFixed(4)),
+      drumDensityScale: Number(flow.drumDensityScale.toFixed(4)),
+    });
+  }
+
+  return {
+    bars: flowBars,
+    barCount: bars,
+    config,
+    pressureStatus: flowBars[0]?.pressureStatus ?? "safe",
+    fingerprint: hashString(JSON.stringify(flowBars)).toString(16),
+  };
+}
+
 const sessionRuntime = {
   bassOn: true,
+  flowOn: false,
+  bassPersona: "elasticQuiet",
+  pressureTarget: "warm",
 };
 
 const SESSION_BASS_ROUTES = Object.freeze({
@@ -1200,16 +1362,19 @@ const SESSION_BASS_ROUTES = Object.freeze({
     roots: ["D2", "G1", "C2", "A1"],
     fifths: ["A2", "D2", "G2", "E2"],
     approaches: ["C#2", "F#1", "B1", "G#1"],
+    ghosts: ["E2", "A1", "B1", "C#2"],
   },
   "rainy-lofi-room": {
     roots: ["E2", "A1", "D2", "G1"],
     fifths: ["B2", "E2", "A2", "D2"],
     approaches: ["D#2", "G#1", "C#2", "F#1"],
+    ghosts: ["F#2", "B1", "E2", "A1"],
   },
   "soft-solo-drift": {
     roots: ["C2", "A1", "F1", "G1"],
     fifths: ["G2", "E2", "C2", "D2"],
     approaches: ["B1", "G#1", "E1", "F#1"],
+    ghosts: ["D2", "B1", "A1", "C2"],
   },
 });
 
@@ -1225,38 +1390,71 @@ function buildSessionBassEvents(options = {}) {
   const baseTick = barIndex * 16;
   const rootIndex = barIndex % route.roots.length;
   const events = [];
+  const flow = buildFlowState({
+    seed,
+    referenceId,
+    barIndex,
+    touch,
+    phrase,
+    room,
+    flowOn: options.flowOn ?? sessionRuntime.flowOn,
+    pressureTarget: options.pressureTarget ?? sessionRuntime.pressureTarget,
+  });
   const rootChance = referenceId === "soft-solo-drift" ? 0.58 : 0.82;
-  const roomRest = room * (referenceId === "soft-solo-drift" ? 0.34 : 0.26);
+  const roomRest = room * (referenceId === "soft-solo-drift" ? 0.34 : 0.26) + flow.restLift * 0.32;
 
-  if (randomAt(seed, baseTick, "session-bass-root") < clamp01(rootChance + touch * 0.06 - roomRest)) {
+  if (flow.decrescendo && randomAt(seed, baseTick, "session-bass-decrescendo-rest") < 0.74) {
+    return [];
+  }
+
+  if (randomAt(seed, baseTick, "session-bass-root") < clamp01(rootChance + touch * 0.05 + flow.bassActivity * 0.12 - roomRest)) {
     events.push({
       type: "session-bass",
       role: "root",
       note: route.roots[rootIndex],
       beat: 0,
-      duration: room > 0.84 ? "4n" : "2n",
-      velocity: Number(clamp01(0.09 + touch * 0.032 - room * 0.018).toFixed(4)),
-      filterHz: Math.round(220 + touch * 150 - room * 42),
+      duration: flow.state === "breathe" ? "1n" : room > 0.84 ? "4n" : "2n",
+      velocity: Number(clamp01((0.088 + touch * 0.028 - room * 0.016) * flow.bassVelocityScale).toFixed(4)),
+      filterHz: Math.round(210 + touch * 130 - room * 44 - (flow.decrescendo ? 36 : 0)),
       offset: Number(((randomAt(seed, baseTick, "session-bass-root-offset") - 0.5) * 0.018).toFixed(4)),
+      persona: "elasticQuiet",
     });
   }
 
-  const answerChance = clamp01(phrase * 0.28 + (1 - room) * 0.14 - (referenceId === "soft-solo-drift" ? 0.1 : 0));
+  const answerChance = clamp01(phrase * 0.34 + (1 - room) * 0.12 + flow.bassActivity * 0.18 - flow.restLift * 0.28 - (referenceId === "soft-solo-drift" ? 0.1 : 0));
   if (events.length < 2 && randomAt(seed, baseTick, "session-bass-answer") < answerChance) {
-    const useApproach = randomAt(seed, baseTick, "session-bass-answer-kind") < phrase * 0.45;
+    const useApproach = randomAt(seed, baseTick, "session-bass-answer-kind") < phrase * 0.52;
+    const useGlide = useApproach && randomAt(seed, baseTick, "session-bass-glide") < 0.42 + flow.bassActivity * 0.24;
     events.push({
       type: "session-bass",
-      role: useApproach ? "approach" : "fifth",
+      role: useGlide ? "glide" : useApproach ? "approach" : "fifth",
       note: useApproach ? route.approaches[rootIndex] : route.fifths[rootIndex],
-      beat: useApproach ? 3.48 : 2,
-      duration: useApproach ? "8n" : "4n",
-      velocity: Number(clamp01(0.052 + touch * 0.018 + phrase * 0.012 - room * 0.012).toFixed(4)),
-      filterHz: Math.round(240 + touch * 170 - room * 34),
+      beat: useApproach ? 3.42 + randomAt(seed, baseTick, "session-bass-glide-late") * 0.14 : 2,
+      duration: useGlide ? "16n" : useApproach ? "8n" : "4n",
+      velocity: Number(clamp01((0.048 + touch * 0.016 + phrase * 0.012 - room * 0.014) * flow.bassVelocityScale).toFixed(4)),
+      filterHz: Math.round(230 + touch * 150 - room * 34),
       offset: Number(((randomAt(seed, baseTick, "session-bass-answer-offset") - 0.5) * 0.024).toFixed(4)),
+      glide: useGlide,
+      persona: "elasticQuiet",
     });
   }
 
-  return events.slice(0, 2);
+  const ghostChance = clamp01(phrase * 0.18 + flow.bassActivity * 0.22 - room * 0.16 - flow.restLift * 0.2);
+  if (events.length < 3 && randomAt(seed, baseTick, "session-bass-ghost") < ghostChance) {
+    events.push({
+      type: "session-bass",
+      role: "ghost",
+      note: route.ghosts[rootIndex],
+      beat: randomAt(seed, baseTick, "session-bass-ghost-beat") < 0.5 ? 1.62 : 2.72,
+      duration: "16n",
+      velocity: Number(clamp01((0.028 + phrase * 0.014) * flow.bassVelocityScale).toFixed(4)),
+      filterHz: Math.round(250 + touch * 90 - room * 40),
+      offset: Number(((randomAt(seed, baseTick, "session-bass-ghost-offset") - 0.5) * 0.03).toFixed(4)),
+      persona: "elasticQuiet",
+    });
+  }
+
+  return events.slice(0, 3);
 }
 
 function previewBassBar(options = {}) {
@@ -1268,12 +1466,15 @@ function previewBassBar(options = {}) {
     touch: options.touch,
     phrase: options.phrase,
     room: options.room,
+    flowOn: options.flowOn,
+    pressureTarget: options.pressureTarget,
   });
   return {
     barIndex: Math.max(0, Math.floor(Number(options.barIndex) || 0)),
     referenceId: CHILL_RECIPES[options.referenceId] ? options.referenceId : generator.config.referenceId,
     eventCount: events.length,
     fingerprint: hashString(JSON.stringify(events)).toString(16),
+    bassPersona: "elasticQuiet",
     events,
   };
 }
@@ -1297,6 +1498,7 @@ function scheduleSessionBassBar(options = {}) {
   preview.events.forEach((event) => {
     const eventTime = startTime + event.beat * beatSec + event.offset;
     sessionBassFilter.frequency.setValueAtTime(Math.max(140, Math.min(520, event.filterHz)), eventTime);
+    if ("portamento" in sessionBass) sessionBass.portamento = event.glide ? 0.045 : 0.018;
     sessionBass.triggerAttackRelease(event.note, event.duration, eventTime, event.velocity);
   });
 
@@ -1335,6 +1537,9 @@ function getToneAudioContext() {
 
 function setSessionState(options = {}) {
   if (typeof options.bassOn === "boolean") sessionRuntime.bassOn = options.bassOn;
+  if (typeof options.flowOn === "boolean") sessionRuntime.flowOn = options.flowOn;
+  if (options.bassPersona === "elasticQuiet") sessionRuntime.bassPersona = options.bassPersona;
+  if (["safe", "warm", "full"].includes(options.pressureTarget)) sessionRuntime.pressureTarget = options.pressureTarget;
   if (Number.isFinite(options.seed)) generator.setSeed(options.seed);
   if (options.referenceId && CHILL_RECIPES[options.referenceId]) generator.setReference(options.referenceId);
   const nextA = options.touch ?? options.faderA ?? generator.config.faderA;
@@ -1345,7 +1550,25 @@ function setSessionState(options = {}) {
   if (Number.isFinite(bpm)) Tone.Transport.bpm.rampTo(Math.max(54, Math.min(120, bpm)), 0.2);
   syncControlsFromConfig();
   updateUi();
-  return { ...generator.config, bassOn: sessionRuntime.bassOn, bpm: Tone.Transport.bpm.value };
+  const flow = previewFlow({
+    bars: 1,
+    referenceId: generator.config.referenceId,
+    seed: generator.config.seed,
+    touch: generator.config.faderA,
+    phrase: generator.config.faderB,
+    room: generator.config.faderC,
+    flowOn: sessionRuntime.flowOn,
+    pressureTarget: sessionRuntime.pressureTarget,
+  }).bars[0];
+  return {
+    ...generator.config,
+    bassOn: sessionRuntime.bassOn,
+    flowOn: sessionRuntime.flowOn,
+    bassPersona: sessionRuntime.bassPersona,
+    pressureTarget: sessionRuntime.pressureTarget,
+    flow,
+    bpm: Tone.Transport.bpm.value,
+  };
 }
 
 function scheduleSessionTick(options = {}) {
@@ -1353,6 +1576,8 @@ function scheduleSessionTick(options = {}) {
     tickIndex: Number.isFinite(options.tickIndex) ? options.tickIndex : transportStep,
     pulseOn: Boolean(options.pulseOn ?? options.grooveOn),
     autoOn: Boolean(options.autoOn),
+    flowOn: Boolean(options.flowOn ?? options.autoOn ?? sessionRuntime.flowOn),
+    pressureTarget: options.pressureTarget ?? sessionRuntime.pressureTarget,
     quiet: runtimeHealth.quiet,
   });
   const time = Number.isFinite(options.time) ? options.time : Tone.now();
@@ -1367,7 +1592,9 @@ function panicSession() {
   } catch (error) {
     console.warn("session bass release failed", error);
   }
-  enterQuietMode("session panic");
+  runtimeHealth.quiet = true;
+  runtimeHealth.recoverAt = performance.now() + 3200;
+  master.gain.rampTo(0.04, 0.35);
   updateUi();
   return { quiet: runtimeHealth.quiet, status: runtimeHealth.lastScheduleResult };
 }
@@ -1380,6 +1607,7 @@ const chillAdapter = {
   diagnostics: {
     previewEventStream,
     runDeterminismCheck,
+    previewFlow,
   },
   session: {
     getAudioContext: getToneAudioContext,
@@ -1387,6 +1615,7 @@ const chillAdapter = {
     scheduleBassBar: scheduleSessionBassBar,
     setSessionState,
     previewBassBar,
+    previewFlow,
     panic: panicSession,
   },
   getRuntimeConfig: () => ({ ...generator.config }),
@@ -1427,6 +1656,8 @@ const mainLoop = new Tone.Loop((time) => {
     pulseOn: grooveOn,
     grooveOn,
     autoOn,
+    flowOn: autoOn,
+    pressureTarget: sessionRuntime.pressureTarget,
     quiet: runtimeHealth.quiet,
   });
   events.forEach((event) => scheduleEvent(event, time));
@@ -1484,14 +1715,24 @@ function startAutoDrift() {
 
   const recipe = generator.getRecipe();
   const target = recipe.defaultFaders;
-  const jitterA = (randomAt(generator.config.seed, autoStep, "auto-a") - 0.5) * 0.06;
-  const jitterB = (randomAt(generator.config.seed, autoStep, "auto-b") - 0.5) * 0.07;
-  const jitterC = (randomAt(generator.config.seed, autoStep, "auto-c") - 0.5) * 0.05;
-  const pulseLift = randomAt(generator.config.seed, autoStep, "auto-pulse") < 0.12 ? 0.012 : 0;
+  const flow = buildFlowState({
+    seed: generator.config.seed,
+    referenceId: recipe.id,
+    barIndex: autoStep,
+    touch: generator.config.faderA,
+    phrase: generator.config.faderB,
+    room: generator.config.faderC,
+    flowOn: true,
+    pressureTarget: sessionRuntime.pressureTarget,
+  });
+  const jitterA = (randomAt(generator.config.seed, autoStep, "auto-a") - 0.5) * 0.028;
+  const jitterB = (randomAt(generator.config.seed, autoStep, "auto-b") - 0.5) * 0.032;
+  const jitterC = (randomAt(generator.config.seed, autoStep, "auto-c") - 0.5) * 0.03;
+  const pulseLift = flow.state === "lift" ? 0.018 : flow.state === "decrescendo" ? -0.02 : 0;
 
   const nextA = generator.config.faderA + (target.faderA - generator.config.faderA) * 0.08 + jitterA + pulseLift;
-  const nextB = generator.config.faderB + (target.faderB - generator.config.faderB) * 0.08 + jitterB + pulseLift * 0.4;
-  const nextC = generator.config.faderC + (target.faderC - generator.config.faderC) * 0.1 + jitterC;
+  const nextB = generator.config.faderB + (target.faderB - generator.config.faderB) * 0.08 + jitterB + pulseLift * 0.32 - flow.restLift * 0.028;
+  const nextC = generator.config.faderC + (target.faderC - generator.config.faderC) * 0.1 + jitterC + flow.roomLift * 0.12;
   generator.applyFaderState(nextA, nextB, nextC);
   syncControlsFromConfig();
 

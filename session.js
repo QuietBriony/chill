@@ -3,6 +3,9 @@ const DRUM_ADAPTER_VERSION = "20260503-base-path";
 const DRUM_PROFILE = "nerdy_jazzy_hiphop";
 const DRUM_FRAME = "jazzy_ghost_glue";
 const DRUM_KIT = "hard_bop_room";
+const LISTENING_SCORE_KEY = "chill:listening-score:v1";
+const PRESSURE_TARGET = "warm";
+const BASS_PERSONA = "elasticQuiet";
 
 const refs = {
   startBtn: document.getElementById("startBtn"),
@@ -20,6 +23,15 @@ const refs = {
   bassStatus: document.getElementById("bassStatus"),
   drumStatus: document.getElementById("drumStatus"),
   sessionBar: document.getElementById("sessionBar"),
+  flowStatus: document.getElementById("flowStatus"),
+  pressureStatus: document.getElementById("pressureStatus"),
+  scoreFlow: document.getElementById("scoreFlow"),
+  scoreDynamics: document.getElementById("scoreDynamics"),
+  scoreBass: document.getElementById("scoreBass"),
+  scoreFatigue: document.getElementById("scoreFatigue"),
+  scoreNotes: document.getElementById("scoreNotes"),
+  scoreSaveBtn: document.getElementById("scoreSaveBtn"),
+  scoreStatus: document.getElementById("scoreStatus"),
 };
 
 let drumAdapter = null;
@@ -31,6 +43,8 @@ let sessionAuto = false;
 let drumLoadStarted = false;
 let drumLoadPromise = null;
 let lastBassEventCount = 0;
+let lastFlowSnapshot = null;
+let lastMixMeter = null;
 
 const originalStart = refs.startBtn.onclick;
 const originalStop = refs.stopBtn.onclick;
@@ -46,11 +60,59 @@ function currentSeed() {
 
 function sessionBasePath() {
   if (window.location.hostname.endsWith("github.io")) return "/drum-floor/";
+  if (window.location.pathname.includes("/chill/")) return "/drum-floor/";
   return "../drum-floor/";
 }
 
 function setText(node, text) {
   if (node) node.textContent = text;
+}
+
+function currentControls() {
+  return {
+    referenceId: refs.referenceSelect.value || "piano-jazz-chill",
+    touch: Number(refs.energy.value),
+    phrase: Number(refs.creation.value),
+    room: Number(refs.nature.value),
+  };
+}
+
+function sessionFlow(barIndex = drumBar) {
+  const controls = currentControls();
+  const flowPreview = window.chillAdapter?.session?.previewFlow?.({
+    bars: 1,
+    startBar: barIndex,
+    seed: currentSeed(),
+    referenceId: controls.referenceId,
+    touch: controls.touch,
+    phrase: controls.phrase,
+    room: controls.room,
+    flowOn: sessionAuto,
+    pressureTarget: PRESSURE_TARGET,
+  });
+  lastFlowSnapshot = flowPreview?.bars?.[0] ?? {
+    state: sessionAuto ? "breathe" : "settle",
+    pressure: 0.4,
+    pressureStatus: "safe",
+    decrescendo: false,
+    bassActivity: 0,
+    drumDensityScale: 1,
+    restLift: 0,
+  };
+  lastMixMeter = {
+    pressure: lastFlowSnapshot.pressure,
+    pressureStatus: lastFlowSnapshot.pressureStatus,
+    pianoDensity: lastFlowSnapshot.pianoDensity ?? 0,
+    bassDensity: lastFlowSnapshot.bassDensity ?? 0,
+    drumDensity: lastFlowSnapshot.drumDensity ?? 0,
+  };
+  return lastFlowSnapshot;
+}
+
+function refreshFlowStatus() {
+  const flow = sessionFlow(drumBar);
+  setText(refs.flowStatus, `FLOW ${flow.state}`);
+  setText(refs.pressureStatus, `PRESSURE ${flow.pressureStatus}`);
 }
 
 function updateSessionUi() {
@@ -63,23 +125,23 @@ function updateSessionUi() {
   refs.autoBtn.textContent = sessionAuto ? "AUTO ON" : "AUTO";
   refs.autoBtn.setAttribute("aria-pressed", String(sessionAuto));
   setText(refs.sessionBar, `bar ${drumBar}`);
+  refreshFlowStatus();
   if (!bassOn) setText(refs.bassStatus, "bass off");
-  if (!drumAdapter && drumLoadStarted) setText(refs.drumStatus, "drums unavailable");
+  if (!drumAdapter && drumLoadStarted) setText(refs.drumStatus, drumLoadPromise ? "drums loading" : "drums unavailable");
 }
 
 function sessionShape(barIndex = drumBar) {
-  const touch = Number(refs.energy.value);
-  const phrase = Number(refs.creation.value);
-  const room = Number(refs.nature.value);
-  const autoWave = sessionAuto ? Math.sin((barIndex + currentSeed() % 17) * 0.41) : 0;
-  const autoLift = sessionAuto ? Math.max(0, autoWave) : 0;
+  const { touch, phrase, room } = currentControls();
+  const flow = sessionFlow(barIndex);
+  const lift = flow.state === "lift" ? 1 : 0;
+  const decrescendo = flow.decrescendo ? 1 : 0;
   const bassSpace = bassOn ? 1 + Math.min(1, lastBassEventCount) * 0.35 : 0;
-  const density = clamp(12 + phrase * 20 + touch * 8 - room * 8 + autoLift * 4 - bassSpace * 3, 8, 36);
-  const energy = clamp(16 + touch * 24 + autoLift * 3 - bassSpace * 2, 14, 42);
-  const space = clamp(68 + room * 24 - phrase * 8 - autoLift * 4 + bassSpace * 3, 58, 94);
+  const density = clamp((12 + phrase * 20 + touch * 8 - room * 8 + lift * 3 - bassSpace * 3 - decrescendo * 6) * (flow.drumDensityScale ?? 1), 6, 34);
+  const energy = clamp(16 + touch * 22 + lift * 2 - bassSpace * 2 - decrescendo * 5, 12, 38);
+  const space = clamp(68 + room * 24 - phrase * 8 + bassSpace * 3 + (flow.restLift ?? 0) * 12 + decrescendo * 5, 58, 96);
   const humanize = clamp(56 + room * 20 + phrase * 4, 48, 82);
   const swing = clamp(8 + room * 4 + phrase * 2, 7, 14);
-  const fillDemand = clamp(2 + phrase * 10 - room * 5 + autoLift * 2, 0, 12);
+  const fillDemand = clamp(2 + phrase * 9 - room * 5 + lift * 2 - decrescendo * 6, 0, 10);
 
   return {
     bpm: SESSION_BPM,
@@ -99,11 +161,9 @@ function sessionShape(barIndex = drumBar) {
 }
 
 function trioSnapshot() {
-  const referenceId = refs.referenceSelect.value || "piano-jazz-chill";
-  const touch = Number(refs.energy.value);
-  const phrase = Number(refs.creation.value);
-  const room = Number(refs.nature.value);
+  const { referenceId, touch, phrase, room } = currentControls();
   const shape = sessionShape(drumBar);
+  const flow = sessionFlow(drumBar);
   let bassPreview = null;
   let drumSnapshot = {
     loaded: false,
@@ -120,6 +180,8 @@ function trioSnapshot() {
       phrase,
       room,
       bassOn,
+      flowOn: sessionAuto,
+      pressureTarget: PRESSURE_TARGET,
     }) ?? null;
   } catch (error) {
     bassPreview = { error: error.message };
@@ -137,6 +199,10 @@ function trioSnapshot() {
     bassOn,
     drumsOn,
     auto: sessionAuto,
+    flow,
+    mixMeter: lastMixMeter,
+    pressureStatus: flow.pressureStatus,
+    bassPersona: BASS_PERSONA,
     barIndex: drumBar,
     seed: currentSeed(),
     referenceId,
@@ -186,51 +252,62 @@ async function ensureDrums() {
 }
 
 function syncSessionState() {
-  const touch = Number(refs.energy.value);
-  const phrase = Number(refs.creation.value);
-  const room = Number(refs.nature.value);
+  const { referenceId, touch, phrase, room } = currentControls();
   window.chillAdapter?.session?.setSessionState?.({
     bpm: SESSION_BPM,
     seed: currentSeed(),
-    referenceId: refs.referenceSelect.value || "piano-jazz-chill",
+    referenceId,
     touch,
     phrase,
     room,
     bassOn,
+    flowOn: sessionAuto,
+    bassPersona: BASS_PERSONA,
+    pressureTarget: PRESSURE_TARGET,
   });
   if (drumAdapter) drumAdapter.setSession(sessionShape());
+  refreshFlowStatus();
 }
 
 function ensureDrumLoop() {
   if (drumLoop) return drumLoop;
   drumLoop = new Tone.Loop((time) => {
+    const controls = currentControls();
+    const flow = sessionFlow(drumBar);
     if (bassOn) {
       const bassResult = window.chillAdapter?.session?.scheduleBassBar?.({
         bpm: SESSION_BPM,
         seed: currentSeed(),
-        referenceId: refs.referenceSelect.value || "piano-jazz-chill",
+        referenceId: controls.referenceId,
         barIndex: drumBar,
-        touch: Number(refs.energy.value),
-        phrase: Number(refs.creation.value),
-        room: Number(refs.nature.value),
+        touch: controls.touch,
+        phrase: controls.phrase,
+        room: controls.room,
         bassOn,
+        flowOn: sessionAuto,
+        pressureTarget: PRESSURE_TARGET,
         startTime: time,
       });
       lastBassEventCount = bassResult?.eventCount ?? 0;
       const firstBass = bassResult?.events?.[0];
-      setText(refs.bassStatus, firstBass ? `bass ${firstBass.note}` : "bass rest");
+      setText(refs.bassStatus, firstBass ? `bass ${firstBass.role}:${firstBass.note}` : "bass rest");
     } else {
       lastBassEventCount = 0;
     }
 
-    if (!drumsOn || !drumAdapter) return;
+    if (!drumsOn || !drumAdapter) {
+      setText(refs.drumStatus, drumsOn ? "drums waiting" : "drums off");
+      drumBar += 1;
+      updateSessionUi();
+      return;
+    }
     drumAdapter.setSession(sessionShape(drumBar));
     const result = drumAdapter.scheduleBar({ barIndex: drumBar, startTime: time });
     if (!result.scheduled) {
       drumsOn = false;
       setText(refs.drumStatus, `drums stopped: ${result.reason}`);
     } else {
-      setText(refs.drumStatus, "soft pocket playing");
+      setText(refs.drumStatus, flow.decrescendo ? "soft pocket decrescendo" : "soft pocket playing");
     }
     drumBar += 1;
     updateSessionUi();
@@ -287,7 +364,8 @@ refs.bassBtn.onclick = () => {
 refs.autoBtn.onclick = (event) => {
   sessionAuto = !sessionAuto;
   originalAuto?.call(refs.autoBtn, event);
-  setText(refs.sessionStatus, sessionAuto ? "auto drift armed" : "manual session");
+  syncSessionState();
+  setText(refs.sessionStatus, sessionAuto ? "flow director armed" : "manual session");
   updateSessionUi();
 };
 
@@ -316,6 +394,33 @@ refs.seedBtn.addEventListener("click", () => {
   input.addEventListener("input", syncSessionState);
   input.addEventListener("change", syncSessionState);
 });
+
+function saveListeningScore() {
+  const entry = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    score: {
+      flow: refs.scoreFlow?.value || "3",
+      dynamics: refs.scoreDynamics?.value || "3",
+      bass: refs.scoreBass?.value || "3",
+      fatigue: refs.scoreFatigue?.value || "3",
+      notes: (refs.scoreNotes?.value || "").slice(0, 500),
+    },
+    snapshot: trioSnapshot(),
+  };
+
+  try {
+    const existing = JSON.parse(window.localStorage.getItem(LISTENING_SCORE_KEY) || "[]");
+    const next = Array.isArray(existing) ? existing.concat(entry).slice(-24) : [entry];
+    window.localStorage.setItem(LISTENING_SCORE_KEY, JSON.stringify(next));
+    setText(refs.scoreStatus, "score saved locally");
+  } catch (error) {
+    console.warn("[chill session] score save failed", error);
+    setText(refs.scoreStatus, "score save failed");
+  }
+}
+
+refs.scoreSaveBtn?.addEventListener("click", saveListeningScore);
 
 window.chillTrioSession = Object.freeze({
   snapshot: trioSnapshot,

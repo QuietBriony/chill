@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>Chill v3.3 - Quiet Piano Trio</title>
+    <title>Chill v3.4 - Quiet Piano Trio</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -16,12 +16,12 @@
 
     <div class="panel session-panel">
       <h1>
-        Chill v3.3
+        Chill v3.4
         <span>Quiet Piano Trio</span>
       </h1>
 
       <p class="listening-note">
-        Quiet synthetic piano with optional soft drum-floor pocket.
+        Quiet synthetic piano, elastic quiet bass, and optional soft drum-floor pocket.
       </p>
 
       <a class="page-link" href="./index.html">Back to Quiet Piano Radio</a>
@@ -39,7 +39,7 @@
       </div>
 
       <p class="mode-note">
-        BASS is sparse roots. DRUMS is soft pocket. AUTO is slow room drift.
+        BASS is elastic quiet roots and glides. DRUMS is soft pocket. AUTO is flow director.
       </p>
 
       <div class="reference-row">
@@ -74,7 +74,65 @@
         <span id="bassStatus">bass sparse</span>
         <span id="drumStatus">drums loading</span>
         <span id="sessionBar">bar 0</span>
+        <span id="flowStatus">FLOW settle</span>
+        <span id="pressureStatus">PRESSURE safe</span>
       </div>
+
+      <details class="listening-score">
+        <summary>Listening score</summary>
+        <p class="mode-note">
+          Metadata only: saves human scores, flow state, and event fingerprints to localStorage.
+        </p>
+        <div class="reference-row">
+          <label>
+            Flow
+            <select id="scoreFlow" aria-label="Flow score">
+              <option value="5">5 natural</option>
+              <option value="4">4 good</option>
+              <option value="3" selected>3 ok</option>
+              <option value="2">2 stiff</option>
+              <option value="1">1 broken</option>
+            </select>
+          </label>
+          <label>
+            Dynamics
+            <select id="scoreDynamics" aria-label="Dynamics score">
+              <option value="5">5 breathing</option>
+              <option value="4">4 controlled</option>
+              <option value="3" selected>3 ok</option>
+              <option value="2">2 flat/loud</option>
+              <option value="1">1 harsh</option>
+            </select>
+          </label>
+        </div>
+        <div class="reference-row">
+          <label>
+            Bass
+            <select id="scoreBass" aria-label="Bass score">
+              <option value="5">5 alive</option>
+              <option value="4">4 supportive</option>
+              <option value="3" selected>3 ok</option>
+              <option value="2">2 dull/busy</option>
+              <option value="1">1 wrong</option>
+            </select>
+          </label>
+          <label>
+            Fatigue
+            <select id="scoreFatigue" aria-label="Fatigue score">
+              <option value="5">5 effortless</option>
+              <option value="4">4 light</option>
+              <option value="3" selected>3 ok</option>
+              <option value="2">2 tiring</option>
+              <option value="1">1 stop</option>
+            </select>
+          </label>
+        </div>
+        <textarea id="scoreNotes" rows="3" maxlength="500" placeholder="listening notes"></textarea>
+        <div class="controls">
+          <button id="scoreSaveBtn" type="button">SAVE SCORE</button>
+          <span id="scoreStatus">local metadata only</span>
+        </div>
+      </details>
 
       <div class="runtime-status" aria-live="polite">
         <span id="seedLabel">Seed</span>
@@ -84,7 +142,7 @@
       </div>
     </div>
 
-    <script src="./engine.js"></script>
-  <script type="module" src="./session.js?v=20260503-session-import"></script>
+    <script src="./engine.js?v=20260504-flow-v2"></script>
+  <script type="module" src="./session.js?v=20260504-flow-v2"></script>
   </body>
 </html>

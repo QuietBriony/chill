@@ -26,20 +26,26 @@
 
       <a class="page-link" href="./index.html">Back to Quiet Piano Radio</a>
 
-      <div class="controls">
-        <button id="startBtn">START</button>
+      <div class="session-flow" aria-label="最短手順">
+        <span><strong>1</strong>START</span>
+        <span><strong>2</strong>BASS / AUTO</span>
+        <span><strong>3</strong>DRUMS 任意</span>
+      </div>
+
+      <div class="controls transport-controls">
+        <button id="startBtn" class="primary-action">START</button>
         <button id="stopBtn">STOP</button>
+      </div>
+
+      <div class="controls support-controls">
+        <button id="bassBtn" aria-pressed="true">BASS ON</button>
+        <button id="autoBtn" aria-pressed="false">AUTO</button>
+        <button id="acidBtn" aria-pressed="false">DRUMS</button>
         <button id="panicBtn" class="panic-button">PANIC</button>
       </div>
 
-      <div class="controls">
-        <button id="acidBtn" aria-pressed="false">DRUMS</button>
-        <button id="bassBtn" aria-pressed="true">BASS ON</button>
-        <button id="autoBtn" aria-pressed="false">AUTO</button>
-      </div>
-
       <p class="mode-note">
-        まずは START。必要なら BASS / DRUMS / AUTO。危ない時は PANIC。
+        まずは START。BASSは既定ON、AUTOは流れ、DRUMSは必要な時だけ。
       </p>
       <p class="mode-note">
         SYNCは構えだけを変えます。音はSTARTまで始まりません。

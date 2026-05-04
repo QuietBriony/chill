@@ -112,6 +112,42 @@ body::before {
   gap: 8px;
 }
 
+.session-flow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 0 0 8px;
+}
+
+.session-flow span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: 14px;
+  background: rgba(10, 12, 10, 0.24);
+  border: 1px solid rgba(235, 210, 160, 0.12);
+  color: #e8dcc5;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.session-flow strong {
+  color: #fff3d8;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.transport-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(86px, 0.82fr);
+}
+
+.support-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .controls button,
 .reference-row button,
 .reference-row select {
@@ -149,6 +185,13 @@ body::before {
 .reference-row select:hover {
   border-color: rgba(245, 222, 178, 0.32);
   transform: translateY(-1px);
+}
+
+.primary-action {
+  background:
+    linear-gradient(135deg, rgba(195, 160, 98, 0.86), rgba(105, 86, 58, 0.62)) !important;
+  border-color: rgba(245, 222, 178, 0.36) !important;
+  color: #fff9eb !important;
 }
 
 button:focus-visible,
@@ -279,6 +322,18 @@ input[type="range"] {
 }
 
 @media (max-width: 520px) {
+  .session-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .transport-controls {
+    grid-template-columns: 1.5fr 1fr;
+  }
+
+  .support-controls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .session-strip {
     grid-template-columns: repeat(2, 1fr);
   }

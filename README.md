@@ -82,6 +82,13 @@ Trio snapshot:
 - `window.chillTrioSession.snapshot()` is read-only and returns `bassOn`, `drumsOn`, `auto`, `flow`, `mixMeter`, `pressureStatus`, `bassPersona`, `barIndex`, `seed`, `sessionShape`, `bassPreview`, and the drum-floor adapter snapshot when loaded.
 - It does not start audio, schedule notes, click controls, arm drum-floor candidates, or mutate Tone transport.
 
+Music SYNC:
+- Musicの `SYNC` はmetadata-onlyの現在状態共有です。
+- `chill/session.html` は `routing.chill` を読み、Touch / Phrase / Room、BASS、AUTO、必要ならDRUMSの構えだけを合わせます。
+- 音は `START` まで始まりません。`BASS`、`DRUMS`、`AUTO`、`PANIC` は人間が押します。
+- chill内の `DRUMS` は drum-floor のsoft pocket adapterです。chillがピアノ/ベース/trioの流れを所有します。
+- drum-floor単独ページやOpenClaw raw candidate生成とは別導線です。
+
 Fixed storage keys:
 - `chill:session:v1`
 - `chill:recipe:v1`

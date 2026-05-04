@@ -1143,8 +1143,8 @@ function schedulePianoEvent(event, time, velocity) {
   pianoBodyFilter.frequency.setValueAtTime(Math.max(420, Math.min(1900, baseCutoff)), time);
   pianoBellFilter.frequency.setValueAtTime(Math.max(900, Math.min(2800, baseCutoff * 1.46)), time);
   pianoDepthFilter.frequency.setValueAtTime(Math.max(900, Math.min(3400, baseCutoff * (1.08 + profile.width * 0.38))), time);
-  pianoDepthDelay.wet.setValueAtTime(Math.min(0.16, 0.028 + depth * 0.12), time);
-  pianoDepthDelay.feedback.setValueAtTime(Math.min(0.22, 0.07 + depth * 0.13), time);
+  pianoDepthDelay.wet.value = Math.min(0.16, 0.028 + depth * 0.12);
+  pianoDepthDelay.feedback.value = Math.min(0.22, 0.07 + depth * 0.13);
 
   notes.forEach((note, index) => {
     const noteTime = time + (event.offset ?? 0) + index * roll;

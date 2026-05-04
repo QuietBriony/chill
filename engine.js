@@ -840,6 +840,7 @@ class ChillGenerator {
       rollSec: ((layer.rollMs ?? 0) / 1000) * (0.55 + shape.nature * 0.75) + shape.flow.rollLift,
       pedal: clamp01((layer.pedal ?? 0.52) + shape.nature * 0.18 + (shape.flow.decrescendo ? 0.08 : 0)),
       room: clamp01((layer.room ?? 0.48) + shape.nature * 0.16 + shape.flow.roomLift),
+      depth: clamp01((layer.depth ?? 0.36) + shape.nature * 0.18 + shape.flow.roomLift * 0.58),
       offset:
         (randomAt(this.config.seed, tickIndex, `${layer.id}:humanize`) - 0.5) * (layer.humanize ?? 0) +
         ((tickIndex % 4 === 2 || tickIndex % 4 === 3) ? (layer.swingPush ?? 0) * shape.nature : 0),
@@ -950,6 +951,10 @@ const master = new Tone.Gain(0.78).connect(limiter);
 const pianoRoom = new Tone.Reverb(3.4);
 pianoRoom.wet.value = 0.26;
 const pianoBus = new Tone.Gain(0.66).chain(pianoRoom, master);
+const pianoDepthFilter = new Tone.Filter(2350, "lowpass");
+const pianoDepthDelay = new Tone.FeedbackDelay({ delayTime: "16n", feedback: 0.1, wet: 0.055 });
+const pianoDepthBus = new Tone.Gain(0.16).chain(pianoDepthFilter, pianoDepthDelay, master);
+pianoBus.connect(pianoDepthBus);
 
 const pianoBodyFilter = new Tone.Filter(1050, "lowpass");
 const pianoBody = new Tone.PolySynth(Tone.Synth, {
@@ -1113,12 +1118,12 @@ function asNoteList(notes) {
 
 function toneProfile(tone) {
   if (tone === "glass") {
-    return { body: 0.78, bell: 0.14, hammer: 0.14, cutoff: 0.9, release: 1.04, room: 1.02 };
+    return { body: 0.78, bell: 0.14, hammer: 0.12, cutoff: 0.9, release: 1.04, room: 1.02, depth: 0.54, width: 0.64 };
   }
   if (tone === "memory") {
-    return { body: 0.7, bell: 0.08, hammer: 0.08, cutoff: 0.62, release: 1.22, room: 1.08 };
+    return { body: 0.7, bell: 0.08, hammer: 0.065, cutoff: 0.62, release: 1.22, room: 1.1, depth: 0.78, width: 0.5 };
   }
-  return { body: 0.94, bell: 0.055, hammer: 0.15, cutoff: 0.76, release: 1.12, room: 0.96 };
+  return { body: 0.94, bell: 0.055, hammer: 0.13, cutoff: 0.76, release: 1.12, room: 0.96, depth: 0.44, width: 0.42 };
 }
 
 function schedulePianoEvent(event, time, velocity) {
@@ -1130,19 +1135,25 @@ function schedulePianoEvent(event, time, velocity) {
   const pedal = clamp01(event.pedal ?? 0.58);
   const room = clamp01(event.room ?? 0.54);
   const baseCutoff = (event.filterHz ?? 1200) * profile.cutoff;
+  const depth = clamp01(((event.depth ?? 0.38) + room * 0.3 + pedal * 0.12) * profile.depth);
   const bodyDur = pedal > 0.78 ? "2n" : event.duration;
   const bellDur = event.tone === "memory" ? "8n" : "4n";
 
   pianoRoom.wet.setValueAtTime(Math.min(0.42, 0.14 + room * 0.24 * profile.room), time);
   pianoBodyFilter.frequency.setValueAtTime(Math.max(420, Math.min(1900, baseCutoff)), time);
   pianoBellFilter.frequency.setValueAtTime(Math.max(900, Math.min(2800, baseCutoff * 1.46)), time);
+  pianoDepthFilter.frequency.setValueAtTime(Math.max(900, Math.min(3400, baseCutoff * (1.08 + profile.width * 0.38))), time);
+  pianoDepthDelay.wet.setValueAtTime(Math.min(0.16, 0.028 + depth * 0.12), time);
+  pianoDepthDelay.feedback.setValueAtTime(Math.min(0.22, 0.07 + depth * 0.13), time);
 
   notes.forEach((note, index) => {
     const noteTime = time + (event.offset ?? 0) + index * roll;
     const noteTilt = 1 - index * 0.045;
-    const bodyVelocity = clamp01(velocity * profile.body * noteTilt);
-    const bellVelocity = clamp01(velocity * profile.bell * (0.9 - index * 0.03));
-    const hammerVelocity = clamp01(velocity * profile.hammer * (0.9 - index * 0.06));
+    const rootWeight = index === 0 && notes.length > 1 ? 1.07 : 1;
+    const upperMemory = index > 0 ? 1.08 : 0.94;
+    const bodyVelocity = clamp01(velocity * profile.body * noteTilt * rootWeight);
+    const bellVelocity = clamp01(velocity * profile.bell * (0.9 - index * 0.03) * upperMemory);
+    const hammerVelocity = clamp01(velocity * profile.hammer * (0.9 - index * 0.06) * (room > 0.78 ? 0.82 : 1));
 
     pianoBody.triggerAttackRelease(note, bodyDur, noteTime, bodyVelocity);
     if (bellVelocity > 0.008) {
@@ -1414,8 +1425,8 @@ function buildSessionBassEvents(options = {}) {
       note: route.roots[rootIndex],
       beat: 0,
       duration: flow.state === "breathe" ? "1n" : room > 0.84 ? "4n" : "2n",
-      velocity: Number(clamp01((0.088 + touch * 0.028 - room * 0.016) * flow.bassVelocityScale).toFixed(4)),
-      filterHz: Math.round(210 + touch * 130 - room * 44 - (flow.decrescendo ? 36 : 0)),
+      velocity: Number(clamp01((0.08 + touch * 0.024 - room * 0.018) * flow.bassVelocityScale).toFixed(4)),
+      filterHz: Math.round(195 + touch * 118 - room * 50 - (flow.decrescendo ? 40 : 0)),
       offset: Number(((randomAt(seed, baseTick, "session-bass-root-offset") - 0.5) * 0.018).toFixed(4)),
       persona: "elasticQuiet",
     });
@@ -1431,8 +1442,8 @@ function buildSessionBassEvents(options = {}) {
       note: useApproach ? route.approaches[rootIndex] : route.fifths[rootIndex],
       beat: useApproach ? 3.42 + randomAt(seed, baseTick, "session-bass-glide-late") * 0.14 : 2,
       duration: useGlide ? "16n" : useApproach ? "8n" : "4n",
-      velocity: Number(clamp01((0.048 + touch * 0.016 + phrase * 0.012 - room * 0.014) * flow.bassVelocityScale).toFixed(4)),
-      filterHz: Math.round(230 + touch * 150 - room * 34),
+      velocity: Number(clamp01((0.044 + touch * 0.014 + phrase * 0.01 - room * 0.015) * flow.bassVelocityScale).toFixed(4)),
+      filterHz: Math.round(215 + touch * 128 - room * 38),
       offset: Number(((randomAt(seed, baseTick, "session-bass-answer-offset") - 0.5) * 0.024).toFixed(4)),
       glide: useGlide,
       persona: "elasticQuiet",
@@ -1447,8 +1458,8 @@ function buildSessionBassEvents(options = {}) {
       note: route.ghosts[rootIndex],
       beat: randomAt(seed, baseTick, "session-bass-ghost-beat") < 0.5 ? 1.62 : 2.72,
       duration: "16n",
-      velocity: Number(clamp01((0.028 + phrase * 0.014) * flow.bassVelocityScale).toFixed(4)),
-      filterHz: Math.round(250 + touch * 90 - room * 40),
+      velocity: Number(clamp01((0.024 + phrase * 0.012) * flow.bassVelocityScale).toFixed(4)),
+      filterHz: Math.round(225 + touch * 80 - room * 44),
       offset: Number(((randomAt(seed, baseTick, "session-bass-ghost-offset") - 0.5) * 0.03).toFixed(4)),
       persona: "elasticQuiet",
     });
@@ -1497,8 +1508,8 @@ function scheduleSessionBassBar(options = {}) {
 
   preview.events.forEach((event) => {
     const eventTime = startTime + event.beat * beatSec + event.offset;
-    sessionBassFilter.frequency.setValueAtTime(Math.max(140, Math.min(520, event.filterHz)), eventTime);
-    if ("portamento" in sessionBass) sessionBass.portamento = event.glide ? 0.045 : 0.018;
+    sessionBassFilter.frequency.setValueAtTime(Math.max(115, Math.min(470, event.filterHz)), eventTime);
+    if ("portamento" in sessionBass) sessionBass.portamento = event.glide ? 0.055 : event.role === "root" ? 0.022 : 0.016;
     sessionBass.triggerAttackRelease(event.note, event.duration, eventTime, event.velocity);
   });
 

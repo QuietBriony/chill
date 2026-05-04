@@ -41,6 +41,7 @@ let drumAdapter = null;
 let drumLoop = null;
 let drumBar = 0;
 let drumsOn = false;
+let drumSuggested = false;
 let bassOn = true;
 let sessionAuto = false;
 let drumLoadStarted = false;
@@ -157,7 +158,8 @@ function applyMusicSessionPacket(packet, source = "sync") {
   refs.nature.value = String(translation.room);
   bassOn = translation.bassOn;
   sessionAuto = translation.flowOn;
-  drumsOn = translation.drumsOn;
+  drumSuggested = translation.drumsOn;
+  drumsOn = drumsOn && drumSuggested;
   sessionPressureTarget = translation.pressureTarget;
   lastBassEventCount = 0;
   drumBar = 0;
@@ -165,7 +167,7 @@ function applyMusicSessionPacket(packet, source = "sync") {
   updateSessionUi();
   setText(refs.sessionStatus, `SYNC ${translation.source_session_id || source}`);
   setText(refs.bassStatus, bassOn ? "bass synced" : "bass off");
-  setText(refs.drumStatus, drumsOn ? "drums ready on START" : "drums suggested off");
+  setText(refs.drumStatus, drumSuggested ? "DRUMS候補: 押すと参加" : "DRUMS候補なし");
   return translation;
 }
 
@@ -340,6 +342,7 @@ function trioSnapshot() {
     role: "chill-piano-bass-drum-trio",
     bassOn,
     drumsOn,
+    drumSuggested,
     auto: sessionAuto,
     flow,
     mixMeter: lastMixMeter,
@@ -467,14 +470,16 @@ refs.startBtn.onclick = async (event) => {
   loop.stop(0);
   loop.start(0);
 
-  const adapter = await ensureDrums();
-  if (adapter) {
-    try {
-      await adapter.start();
-    } catch (error) {
-      console.warn("[chill session] drum start failed; piano will continue", error);
-      drumsOn = false;
-      setText(refs.drumStatus, "drums unavailable");
+  if (drumsOn) {
+    const adapter = await ensureDrums();
+    if (adapter) {
+      try {
+        await adapter.start();
+      } catch (error) {
+        console.warn("[chill session] drum start failed; piano will continue", error);
+        drumsOn = false;
+        setText(refs.drumStatus, "drums unavailable");
+      }
     }
   }
   updateSessionUi();
@@ -491,7 +496,19 @@ refs.stopBtn.onclick = (event) => {
 
 refs.drumsBtn.onclick = async () => {
   drumsOn = !drumsOn;
-  if (drumsOn) await ensureDrums();
+  drumSuggested = drumSuggested || drumsOn;
+  if (drumsOn) {
+    const adapter = await ensureDrums();
+    if (adapter && Tone.Transport.state === "started") {
+      try {
+        await adapter.start();
+      } catch (error) {
+        console.warn("[chill session] drum start failed; piano will continue", error);
+        drumsOn = false;
+        setText(refs.drumStatus, "drums unavailable");
+      }
+    }
+  }
   setText(refs.drumStatus, drumsOn ? "soft pocket armed" : "drums off");
   updateSessionUi();
 };

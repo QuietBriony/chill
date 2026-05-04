@@ -4,8 +4,11 @@ const DRUM_PROFILE = "nerdy_jazzy_hiphop";
 const DRUM_FRAME = "jazzy_ghost_glue";
 const DRUM_KIT = "hard_bop_room";
 const LISTENING_SCORE_KEY = "chill:listening-score:v1";
-const PRESSURE_TARGET = "warm";
+const DEFAULT_PRESSURE_TARGET = "warm";
 const BASS_PERSONA = "elasticQuiet";
+const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";
+const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
+const CHILL_REFERENCE_IDS = ["piano-jazz-chill", "rainy-lofi-room", "soft-solo-drift"];
 
 const refs = {
   startBtn: document.getElementById("startBtn"),
@@ -45,6 +48,9 @@ let drumLoadPromise = null;
 let lastBassEventCount = 0;
 let lastFlowSnapshot = null;
 let lastMixMeter = null;
+let lastMusicSessionPacket = null;
+let lastMusicSessionTranslation = null;
+let sessionPressureTarget = DEFAULT_PRESSURE_TARGET;
 
 const originalStart = refs.startBtn.onclick;
 const originalStop = refs.stopBtn.onclick;
@@ -52,6 +58,21 @@ const originalAuto = refs.autoBtn.onclick;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function unit(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? clamp(number, 0, 1) : fallback;
+}
+
+function percent(value, fallback = 0) {
+  const number = Number(value);
+  const source = Number.isFinite(number) ? number : Number(fallback);
+  return Number.isFinite(source) ? clamp(source, 0, 100) / 100 : 0;
+}
+
+function object(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
 function currentSeed() {
@@ -77,6 +98,127 @@ function currentControls() {
   };
 }
 
+function chooseReferenceId(packet, intent, gradient) {
+  const requested = String(intent.reference_id || intent.referenceId || "");
+  if (CHILL_REFERENCE_IDS.includes(requested)) return requested;
+  const pad = String(object(packet?.performance_state).active_pad || "").toLowerCase();
+  if (pad === "drift" || unit(gradient.memory) > 0.5) return "soft-solo-drift";
+  if (pad === "void" || unit(gradient.chrome) > 0.46 || unit(gradient.haze) > 0.52) return "rainy-lofi-room";
+  return "piano-jazz-chill";
+}
+
+function translateMusicSessionPacket(packet) {
+  const routing = object(packet?.routing);
+  const chill = object(routing.chill);
+  const intent = object(chill.trio_intent);
+  const gradient = object(packet?.reference_gradient?.weights);
+  const ucm = object(packet?.ucm_state);
+  const energy = percent(ucm.energy, 32);
+  const creation = percent(ucm.creation, 28);
+  const voidness = percent(ucm.void, 24);
+  const circle = percent(ucm.circle, 48);
+  const observer = percent(ucm.observer, 48);
+  const memory = unit(gradient.memory, 0.34);
+  const haze = unit(gradient.haze, 0.38);
+  const micro = unit(gradient.micro, 0.24);
+  const ghost = unit(gradient.ghost, 0.24);
+  const drumSupport = unit(chill.drum_support, energy * 0.28 + ghost * 0.2 + micro * 0.12 - voidness * 0.18);
+  const roomFallback = clamp(0.54 + voidness * 0.2 + observer * 0.12 + haze * 0.12 - energy * 0.12, 0.42, 0.94);
+  const touch = unit(intent.touch, clamp(0.16 + energy * 0.24 + micro * 0.12 - voidness * 0.1, 0.08, 0.68));
+  const phrase = unit(intent.phrase, clamp(0.12 + creation * 0.22 + memory * 0.16 + ghost * 0.08, 0.08, 0.72));
+  const room = unit(intent.room, roomFallback);
+  const pressureTarget = ["safe", "warm", "full"].includes(intent.pressure_target) ? intent.pressure_target : energy > 0.58 ? "safe" : "warm";
+  return {
+    schema: "chill.music-stack-sync.v1",
+    source_session_id: packet?.session_id || "",
+    enabled: chill.enabled !== false,
+    referenceId: chooseReferenceId(packet, intent, gradient),
+    touch,
+    phrase,
+    room,
+    bassOn: intent.bass_on !== false,
+    flowOn: intent.flow_on !== false,
+    drumsOn: Boolean(intent.drums_suggested ?? (drumSupport > 0.34 && voidness < 0.58)),
+    pressureTarget,
+    drumSupport,
+    pianoMemory: unit(chill.piano_memory, memory * 0.45 + haze * 0.22 + circle * 0.1),
+    review_only: true,
+  };
+}
+
+function applyMusicSessionPacket(packet, source = "sync") {
+  const translation = translateMusicSessionPacket(packet);
+  if (!translation.enabled) return translation;
+  lastMusicSessionPacket = packet;
+  lastMusicSessionTranslation = translation;
+  refs.referenceSelect.value = translation.referenceId;
+  refs.energy.value = String(translation.touch);
+  refs.creation.value = String(translation.phrase);
+  refs.nature.value = String(translation.room);
+  bassOn = translation.bassOn;
+  sessionAuto = translation.flowOn;
+  drumsOn = translation.drumsOn;
+  sessionPressureTarget = translation.pressureTarget;
+  lastBassEventCount = 0;
+  drumBar = 0;
+  syncSessionState();
+  updateSessionUi();
+  setText(refs.sessionStatus, `SYNC ${translation.source_session_id || source}`);
+  setText(refs.bassStatus, bassOn ? "bass synced" : "bass off");
+  setText(refs.drumStatus, drumsOn ? "drums ready on START" : "drums suggested off");
+  return translation;
+}
+
+function musicPacketFromStackPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.packet && typeof payload.packet === "object" && payload.packet.source_repo === "Music") return payload.packet;
+  if (payload.source_repo === "Music") return payload;
+  return null;
+}
+
+function receiveMusicStackPacket(payload, source = "sync") {
+  const packet = musicPacketFromStackPayload(payload);
+  if (!packet) return false;
+  try {
+    applyMusicSessionPacket(packet, source);
+    return true;
+  } catch (error) {
+    console.warn("[chill session] Music stack sync failed", error);
+    setText(refs.sessionStatus, `SYNC error: ${error.message}`);
+    return false;
+  }
+}
+
+function readLatestMusicStackPacket() {
+  try {
+    const raw = window.localStorage?.getItem(MUSIC_STACK_PACKET_STORAGE_KEY);
+    if (!raw) return false;
+    return receiveMusicStackPacket(JSON.parse(raw), "latest");
+  } catch (error) {
+    console.warn("[chill session] latest sync read failed", error);
+    return false;
+  }
+}
+
+function setupMusicStackSyncReceiver() {
+  try {
+    if (typeof window.BroadcastChannel === "function") {
+      const channel = new window.BroadcastChannel(MUSIC_STACK_CHANNEL_NAME);
+      channel.addEventListener("message", (event) => receiveMusicStackPacket(event.data, "broadcast"));
+    }
+  } catch (error) {
+    console.warn("[chill session] BroadcastChannel unavailable", error);
+  }
+  window.addEventListener("storage", (event) => {
+    if (event.key !== MUSIC_STACK_PACKET_STORAGE_KEY || !event.newValue) return;
+    try {
+      receiveMusicStackPacket(JSON.parse(event.newValue), "storage");
+    } catch (error) {
+      console.warn("[chill session] storage sync failed", error);
+    }
+  });
+}
+
 function sessionFlow(barIndex = drumBar) {
   const controls = currentControls();
   const flowPreview = window.chillAdapter?.session?.previewFlow?.({
@@ -88,7 +230,7 @@ function sessionFlow(barIndex = drumBar) {
     phrase: controls.phrase,
     room: controls.room,
     flowOn: sessionAuto,
-    pressureTarget: PRESSURE_TARGET,
+    pressureTarget: sessionPressureTarget,
   });
   lastFlowSnapshot = flowPreview?.bars?.[0] ?? {
     state: sessionAuto ? "breathe" : "settle",
@@ -181,7 +323,7 @@ function trioSnapshot() {
       room,
       bassOn,
       flowOn: sessionAuto,
-      pressureTarget: PRESSURE_TARGET,
+      pressureTarget: sessionPressureTarget,
     }) ?? null;
   } catch (error) {
     bassPreview = { error: error.message };
@@ -210,6 +352,7 @@ function trioSnapshot() {
     sessionShape: shape,
     bassPreview,
     drumAdapter: drumSnapshot,
+    lastMusicSession: lastMusicSessionTranslation,
     statuses: {
       session: refs.sessionStatus?.textContent || "",
       bass: refs.bassStatus?.textContent || "",
@@ -263,7 +406,7 @@ function syncSessionState() {
     bassOn,
     flowOn: sessionAuto,
     bassPersona: BASS_PERSONA,
-    pressureTarget: PRESSURE_TARGET,
+    pressureTarget: sessionPressureTarget,
   });
   if (drumAdapter) drumAdapter.setSession(sessionShape());
   refreshFlowStatus();
@@ -285,7 +428,7 @@ function ensureDrumLoop() {
         room: controls.room,
         bassOn,
         flowOn: sessionAuto,
-        pressureTarget: PRESSURE_TARGET,
+        pressureTarget: sessionPressureTarget,
         startTime: time,
       });
       lastBassEventCount = bassResult?.eventCount ?? 0;
@@ -424,8 +567,12 @@ refs.scoreSaveBtn?.addEventListener("click", saveListeningScore);
 
 window.chillTrioSession = Object.freeze({
   snapshot: trioSnapshot,
+  applyMusicSessionPacket,
+  translateMusicSessionPacket,
 });
 
+setupMusicStackSyncReceiver();
 syncSessionState();
 ensureDrums();
 updateSessionUi();
+readLatestMusicStackPacket();

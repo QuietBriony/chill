@@ -51,6 +51,7 @@ Button meaning:
 - `PULSE`: optional soft kick / hat / bass floor under the piano. It is off by default and should not become the main feature.
 - `AUTO`: Flow Director. It shapes pressure, rest, decrescendo, and room without suddenly turning the radio into a different track.
 - `BASS` on the session page is an elastic quiet synthetic bass layer hosted by `chill`, not `Music` or `drum-floor`.
+- Quiet Trio depth pass keeps the piano synthetic/no-sample while adding a small felt bloom path and a clamped bass bus for safer low-end depth.
 
 Stack separation:
 - `Music`: experimental / edge reference-driven rig

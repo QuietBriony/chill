@@ -68,6 +68,7 @@ Quiet Piano Trio session:
 - `BASS`: elastic quiet roots, fifths, approaches, glides, and ghost notes hosted by `chill`.
 - `DRUMS`: optional drum-floor soft pocket bars.
 - `AUTO`: Flow Director for natural breath, decrescendo, pressure control, and drum/bass space.
+- `Soft Melody` is available in the trio session and can be selected by Music SYNC when memory and creation are high but VOID is not dominant.
 - Listening score is local metadata only: human flow/dynamics/bass/fatigue scores plus the trio snapshot. It stores no audio.
 
 Public runtime contracts:

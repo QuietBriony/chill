@@ -955,6 +955,10 @@ const pianoDepthFilter = new Tone.Filter(2350, "lowpass");
 const pianoDepthDelay = new Tone.FeedbackDelay({ delayTime: "16n", feedback: 0.1, wet: 0.055 });
 const pianoDepthBus = new Tone.Gain(0.16).chain(pianoDepthFilter, pianoDepthDelay, master);
 pianoBus.connect(pianoDepthBus);
+const pianoBloomFilter = new Tone.Filter(2600, "highpass");
+const pianoBloomDelay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.06, wet: 0.025 });
+const pianoBloomBus = new Tone.Gain(0.04).chain(pianoBloomFilter, pianoBloomDelay, master);
+pianoBus.connect(pianoBloomBus);
 
 const pianoBodyFilter = new Tone.Filter(1050, "lowpass");
 const pianoBody = new Tone.PolySynth(Tone.Synth, {
@@ -1000,12 +1004,15 @@ const bass = new Tone.MonoSynth({
 }).connect(master);
 
 const sessionBassFilter = new Tone.Filter(380, "lowpass");
+const sessionBassHighpass = new Tone.Filter(42, "highpass");
+const sessionBassGlue = new Tone.Compressor({ threshold: -30, ratio: 2.2, attack: 0.035, release: 0.22 });
+const sessionBassBus = new Tone.Gain(0.74).chain(sessionBassHighpass, sessionBassGlue, master);
 const sessionBass = new Tone.MonoSynth({
   oscillator: { type: "triangle" },
   filter: { type: "lowpass", rolloff: -24 },
   envelope: { attack: 0.026, decay: 0.36, sustain: 0.18, release: 0.72 },
   filterEnvelope: { attack: 0.018, decay: 0.28, sustain: 0.12, release: 0.5 },
-}).chain(sessionBassFilter, master);
+}).chain(sessionBassFilter, sessionBassBus);
 
 const kick = new Tone.MembraneSynth({
   pitchDecay: 0.008,
@@ -1118,12 +1125,12 @@ function asNoteList(notes) {
 
 function toneProfile(tone) {
   if (tone === "glass") {
-    return { body: 0.78, bell: 0.14, hammer: 0.12, cutoff: 0.9, release: 1.04, room: 1.02, depth: 0.54, width: 0.64 };
+    return { body: 0.78, bell: 0.13, hammer: 0.105, cutoff: 0.88, release: 1.04, room: 1.02, depth: 0.58, width: 0.66, bloom: 0.58 };
   }
   if (tone === "memory") {
-    return { body: 0.7, bell: 0.08, hammer: 0.065, cutoff: 0.62, release: 1.22, room: 1.1, depth: 0.78, width: 0.5 };
+    return { body: 0.7, bell: 0.075, hammer: 0.055, cutoff: 0.6, release: 1.22, room: 1.1, depth: 0.82, width: 0.5, bloom: 0.72 };
   }
-  return { body: 0.94, bell: 0.055, hammer: 0.13, cutoff: 0.76, release: 1.12, room: 0.96, depth: 0.44, width: 0.42 };
+  return { body: 0.94, bell: 0.052, hammer: 0.112, cutoff: 0.74, release: 1.12, room: 0.96, depth: 0.48, width: 0.42, bloom: 0.44 };
 }
 
 function schedulePianoEvent(event, time, velocity) {
@@ -1145,12 +1152,16 @@ function schedulePianoEvent(event, time, velocity) {
   pianoDepthFilter.frequency.setValueAtTime(Math.max(900, Math.min(3400, baseCutoff * (1.08 + profile.width * 0.38))), time);
   pianoDepthDelay.wet.value = Math.min(0.16, 0.028 + depth * 0.12);
   pianoDepthDelay.feedback.value = Math.min(0.22, 0.07 + depth * 0.13);
+  pianoBloomFilter.frequency.setValueAtTime(Math.max(1800, Math.min(4200, baseCutoff * (1.4 + profile.width * 0.32))), time);
+  pianoBloomDelay.wet.value = Math.min(0.07, 0.012 + depth * profile.bloom * 0.058);
+  pianoBloomDelay.feedback.value = Math.min(0.11, 0.032 + room * 0.055);
 
   notes.forEach((note, index) => {
     const noteTime = time + (event.offset ?? 0) + index * roll;
-    const noteTilt = 1 - index * 0.045;
-    const rootWeight = index === 0 && notes.length > 1 ? 1.07 : 1;
-    const upperMemory = index > 0 ? 1.08 : 0.94;
+    const voicingTilt = notes.length > 3 ? 0.038 : 0.045;
+    const noteTilt = 1 - index * voicingTilt;
+    const rootWeight = index === 0 && notes.length > 1 ? (room > 0.78 ? 1.02 : 1.05) : 1;
+    const upperMemory = index > 0 ? (room > 0.8 ? 1.02 : 1.06) : 0.94;
     const bodyVelocity = clamp01(velocity * profile.body * noteTilt * rootWeight);
     const bellVelocity = clamp01(velocity * profile.bell * (0.9 - index * 0.03) * upperMemory);
     const hammerVelocity = clamp01(velocity * profile.hammer * (0.9 - index * 0.06) * (room > 0.78 ? 0.82 : 1));

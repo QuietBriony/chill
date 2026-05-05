@@ -1398,6 +1398,12 @@ const SESSION_BASS_ROUTES = Object.freeze({
     approaches: ["B1", "G#1", "E1", "F#1"],
     ghosts: ["D2", "B1", "A1", "C2"],
   },
+  "soft-melody-piano": {
+    roots: ["D2", "G1", "C2", "A1"],
+    fifths: ["A2", "D2", "G2", "E2"],
+    approaches: ["C#2", "F#1", "B1", "G#1"],
+    ghosts: ["E2", "B1", "A1", "D2"],
+  },
 });
 
 function buildSessionBassEvents(options = {}) {

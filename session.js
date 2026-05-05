@@ -8,7 +8,7 @@ const DEFAULT_PRESSURE_TARGET = "warm";
 const BASS_PERSONA = "elasticQuiet";
 const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";
 const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
-const CHILL_REFERENCE_IDS = ["piano-jazz-chill", "rainy-lofi-room", "soft-solo-drift"];
+const CHILL_REFERENCE_IDS = ["piano-jazz-chill", "rainy-lofi-room", "soft-solo-drift", "soft-melody-piano"];
 
 const refs = {
   startBtn: document.getElementById("startBtn"),
@@ -102,8 +102,13 @@ function currentControls() {
 function chooseReferenceId(packet, intent, gradient) {
   const requested = String(intent.reference_id || intent.referenceId || "");
   if (CHILL_REFERENCE_IDS.includes(requested)) return requested;
+  const ucm = object(packet?.ucm_state);
   const pad = String(object(packet?.performance_state).active_pad || "").toLowerCase();
-  if (pad === "drift" || unit(gradient.memory) > 0.5) return "soft-solo-drift";
+  const memory = unit(gradient.memory);
+  const creation = percent(ucm.creation, 0);
+  const voidness = percent(ucm.void, 0);
+  if (pad === "drift" || (memory > 0.58 && creation < 0.36)) return "soft-solo-drift";
+  if (memory > 0.42 && creation > 0.32 && voidness < 0.62) return "soft-melody-piano";
   if (pad === "void" || unit(gradient.chrome) > 0.46 || unit(gradient.haze) > 0.52) return "rainy-lofi-room";
   return "piano-jazz-chill";
 }

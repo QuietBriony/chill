@@ -395,7 +395,7 @@ async function ensureDrums() {
     });
     drumAdapter.setSession(sessionShape(0));
     await drumAdapter.load();
-    setText(refs.drumStatus, "soft pocket ready");
+    setText(refs.drumStatus, drumSuggested ? "DRUMS任意: ready" : "DRUMSなしでOK");
     return drumAdapter;
   })();
 

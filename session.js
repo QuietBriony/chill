@@ -394,6 +394,7 @@ async function ensureDrums() {
       basePath: sessionBasePath(),
       audioContext,
       gain: DRUM_GLUE_GAIN,
+      softGlue: 1,
     });
     drumAdapter.setSession(sessionShape(0));
     await drumAdapter.load();

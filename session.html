@@ -7,7 +7,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./style.css?v=play-entry" />
     <!-- Tone.js CDN (14.7.77 stable, existing dependency only) -->
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
   </head>
@@ -21,15 +21,15 @@
       </h1>
 
       <p class="listening-note">
-        Music SYNCの受け口。聴く時はSTART、DRUMSは任意です。
+        Music SYNCを受けたら、Quiet Piano / Soft Melody / Room の構えだけ合わせます。音はSTARTまで始まりません。
       </p>
 
       <a class="page-link" href="./index.html">Back to Quiet Piano Radio</a>
 
       <div class="session-flow" aria-label="最短手順">
-        <span><strong>1</strong>START</span>
-        <span><strong>2</strong>BASS / AUTO</span>
-        <span><strong>3</strong>DRUMS 任意</span>
+        <span><strong>1</strong>STARTで聴く</span>
+        <span><strong>2</strong>BASS / AUTOで支える</span>
+        <span><strong>3</strong>DRUMSは任意</span>
       </div>
 
       <div class="controls transport-controls">
@@ -45,7 +45,7 @@
       </div>
 
       <p class="mode-note">
-        SYNCは構えだけ。音はSTARTまで始まりません。BASSは既定ON、AUTOは流れ、DRUMSは必要な時だけ。
+        迷ったらSTARTだけ。BASSは既定ON、AUTOは流れ、DRUMSは少しドラムが欲しい時だけ。
       </p>
 
       <details class="advanced-session">
@@ -153,6 +153,6 @@
     </div>
 
     <script src="./engine.js?v=20260504-flow-v2"></script>
-  <script type="module" src="./session.js?v=music-stack-sync-trio"></script>
+  <script type="module" src="./session.js?v=play-entry"></script>
   </body>
 </html>

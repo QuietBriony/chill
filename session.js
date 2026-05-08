@@ -9,6 +9,12 @@ const BASS_PERSONA = "elasticQuiet";
 const MUSIC_STACK_PACKET_STORAGE_KEY = "qb:music-stack:latest-packet:v1";
 const MUSIC_STACK_CHANNEL_NAME = "qb:music-stack:v1";
 const CHILL_REFERENCE_IDS = ["piano-jazz-chill", "rainy-lofi-room", "soft-solo-drift", "soft-melody-piano"];
+const CHILL_REFERENCE_LABELS = {
+  "piano-jazz-chill": "Quiet Piano",
+  "rainy-lofi-room": "Glass Room",
+  "soft-solo-drift": "Memory Piano",
+  "soft-melody-piano": "Soft Melody"
+};
 
 const refs = {
   startBtn: document.getElementById("startBtn"),
@@ -88,6 +94,10 @@ function sessionBasePath() {
 
 function setText(node, text) {
   if (node) node.textContent = text;
+}
+
+function referenceLabel(id) {
+  return CHILL_REFERENCE_LABELS[id] || "Quiet Piano";
 }
 
 function currentControls() {
@@ -170,9 +180,9 @@ function applyMusicSessionPacket(packet, source = "sync") {
   drumBar = 0;
   syncSessionState();
   updateSessionUi();
-  setText(refs.sessionStatus, `SYNC ${translation.source_session_id || source}`);
-  setText(refs.bassStatus, bassOn ? "bass synced" : "bass off");
-  setText(refs.drumStatus, drumSuggested ? "DRUMS候補: 押すと参加" : "DRUMS候補なし");
+  setText(refs.sessionStatus, `SYNC ${referenceLabel(translation.referenceId)} / STARTで聴く`);
+  setText(refs.bassStatus, bassOn ? "Quiet Bass ready" : "bass off");
+  setText(refs.drumStatus, drumSuggested ? "DRUMS任意: 押すと参加" : "DRUMSなしでOK");
   return translation;
 }
 

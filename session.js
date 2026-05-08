@@ -3,6 +3,7 @@ const DRUM_ADAPTER_VERSION = "20260503-base-path";
 const DRUM_PROFILE = "nerdy_jazzy_hiphop";
 const DRUM_FRAME = "jazzy_ghost_glue";
 const DRUM_KIT = "hard_bop_room";
+const DRUM_GLUE_GAIN = 0.105;
 const LISTENING_SCORE_KEY = "chill:listening-score:v1";
 const DEFAULT_PRESSURE_TARGET = "warm";
 const BASS_PERSONA = "elasticQuiet";
@@ -295,12 +296,13 @@ function sessionShape(barIndex = drumBar) {
   const lift = flow.state === "lift" ? 1 : 0;
   const decrescendo = flow.decrescendo ? 1 : 0;
   const bassSpace = bassOn ? 1 + Math.min(1, lastBassEventCount) * 0.35 : 0;
-  const density = clamp((12 + phrase * 20 + touch * 8 - room * 8 + lift * 3 - bassSpace * 3 - decrescendo * 6) * (flow.drumDensityScale ?? 1), 6, 34);
-  const energy = clamp(16 + touch * 22 + lift * 2 - bassSpace * 2 - decrescendo * 5, 12, 38);
-  const space = clamp(68 + room * 24 - phrase * 8 + bassSpace * 3 + (flow.restLift ?? 0) * 12 + decrescendo * 5, 58, 96);
-  const humanize = clamp(56 + room * 20 + phrase * 4, 48, 82);
-  const swing = clamp(8 + room * 4 + phrase * 2, 7, 14);
-  const fillDemand = clamp(2 + phrase * 9 - room * 5 + lift * 2 - decrescendo * 6, 0, 10);
+  const glueScale = bassOn ? 0.88 : 0.96;
+  const density = clamp((9 + phrase * 16 + touch * 6 - room * 9 + lift * 2 - bassSpace * 4 - decrescendo * 7) * (flow.drumDensityScale ?? 1) * glueScale, 4, 26);
+  const energy = clamp(12 + touch * 18 + lift * 1.5 - bassSpace * 3 - decrescendo * 6, 9, 31);
+  const space = clamp(72 + room * 22 - phrase * 6 + bassSpace * 4 + (flow.restLift ?? 0) * 12 + decrescendo * 6, 64, 98);
+  const humanize = clamp(60 + room * 22 + phrase * 5, 52, 88);
+  const swing = clamp(9 + room * 4 + phrase * 2, 8, 15);
+  const fillDemand = clamp(1 + phrase * 6 - room * 5 + lift * 1.5 - decrescendo * 7, 0, 7);
 
   return {
     bpm: SESSION_BPM,
@@ -391,7 +393,7 @@ async function ensureDrums() {
     drumAdapter = module.createDrumFloorSessionAdapter({
       basePath: sessionBasePath(),
       audioContext,
-      gain: 0.13,
+      gain: DRUM_GLUE_GAIN,
     });
     drumAdapter.setSession(sessionShape(0));
     await drumAdapter.load();

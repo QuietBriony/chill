@@ -110,7 +110,30 @@ function currentControls() {
   };
 }
 
-function chooseReferenceId(packet, intent, gradient) {
+function musicMicFollow(packet) {
+  const mic = object(object(packet?.performance_state).mic_follow);
+  const confidence = unit(mic.confidence);
+  return {
+    enabled: mic.enabled === true && confidence > 0.08,
+    gesture: String(mic.gesture || "silent").toLowerCase(),
+    drive: unit(mic.drive),
+    pulse: unit(mic.pulse),
+    phrase: unit(mic.phrase),
+    clap: unit(mic.clap),
+    hum: unit(mic.hum),
+    air: unit(mic.air),
+    bpmLock: Number(mic.bpm_lock) || 0,
+    confidence,
+  };
+}
+
+function micCueLabel(mic) {
+  if (!mic?.enabled) return "";
+  const drive = Math.round((mic.drive || 0) * 100);
+  return ` / MIC ${String(mic.gesture || "mic").toUpperCase()}${drive ? ` ${drive}%` : ""}`;
+}
+
+function chooseReferenceId(packet, intent, gradient, mic) {
   const requested = String(intent.reference_id || intent.referenceId || "");
   if (CHILL_REFERENCE_IDS.includes(requested)) return requested;
   const ucm = object(packet?.ucm_state);
@@ -118,6 +141,11 @@ function chooseReferenceId(packet, intent, gradient) {
   const memory = unit(gradient.memory);
   const creation = percent(ucm.creation, 0);
   const voidness = percent(ucm.void, 0);
+  if (mic?.enabled && mic.confidence > 0.16) {
+    if (mic.gesture === "phrase" || mic.gesture === "hum") return "soft-melody-piano";
+    if (mic.gesture === "breath" || mic.air > 0.32) return "rainy-lofi-room";
+    if (mic.gesture === "clap" || mic.gesture === "pulse") return "piano-jazz-chill";
+  }
   if (pad === "drift" || (memory > 0.58 && creation < 0.36)) return "soft-solo-drift";
   if (memory > 0.42 && creation > 0.32 && voidness < 0.62) return "soft-melody-piano";
   if (pad === "void" || unit(gradient.chrome) > 0.46 || unit(gradient.haze) > 0.52) return "rainy-lofi-room";
@@ -139,17 +167,21 @@ function translateMusicSessionPacket(packet) {
   const haze = unit(gradient.haze, 0.38);
   const micro = unit(gradient.micro, 0.24);
   const ghost = unit(gradient.ghost, 0.24);
-  const drumSupport = unit(chill.drum_support, energy * 0.28 + ghost * 0.2 + micro * 0.12 - voidness * 0.18);
+  const mic = musicMicFollow(packet);
+  const micPulse = mic.enabled ? clamp(Math.max(mic.pulse, mic.clap, mic.drive * 0.7) * mic.confidence, 0, 1) : 0;
+  const micAir = mic.enabled ? clamp(Math.max(mic.air, mic.hum * 0.7) * mic.confidence, 0, 1) : 0;
+  const micPhrase = mic.enabled ? clamp(Math.max(mic.phrase, mic.hum * 0.6) * mic.confidence, 0, 1) : 0;
+  const drumSupport = unit(chill.drum_support, energy * 0.28 + ghost * 0.2 + micro * 0.12 - voidness * 0.18 + micPulse * 0.22 - micAir * 0.08);
   const roomFallback = clamp(0.54 + voidness * 0.2 + observer * 0.12 + haze * 0.12 - energy * 0.12, 0.42, 0.94);
-  const touch = unit(intent.touch, clamp(0.16 + energy * 0.24 + micro * 0.12 - voidness * 0.1, 0.08, 0.68));
-  const phrase = unit(intent.phrase, clamp(0.12 + creation * 0.22 + memory * 0.16 + ghost * 0.08, 0.08, 0.72));
-  const room = unit(intent.room, roomFallback);
+  const touch = unit(intent.touch, clamp(0.16 + energy * 0.24 + micro * 0.12 - voidness * 0.1 + micPulse * 0.08, 0.08, 0.72));
+  const phrase = unit(intent.phrase, clamp(0.12 + creation * 0.22 + memory * 0.16 + ghost * 0.08 + micPhrase * 0.18, 0.08, 0.78));
+  const room = unit(intent.room, clamp(roomFallback + micAir * 0.12, 0.42, 0.96));
   const pressureTarget = ["safe", "warm", "full"].includes(intent.pressure_target) ? intent.pressure_target : energy > 0.58 ? "safe" : "warm";
   return {
     schema: "chill.music-stack-sync.v1",
     source_session_id: packet?.session_id || "",
     enabled: chill.enabled !== false,
-    referenceId: chooseReferenceId(packet, intent, gradient),
+    referenceId: chooseReferenceId(packet, intent, gradient, mic),
     touch,
     phrase,
     room,
@@ -159,6 +191,13 @@ function translateMusicSessionPacket(packet) {
     pressureTarget,
     drumSupport,
     pianoMemory: unit(chill.piano_memory, memory * 0.45 + haze * 0.22 + circle * 0.1),
+    micFollow: {
+      enabled: mic.enabled,
+      gesture: mic.gesture,
+      drive: Number(mic.drive.toFixed(3)),
+      confidence: Number(mic.confidence.toFixed(3)),
+      bpmLock: Math.round(mic.bpmLock),
+    },
     review_only: true,
   };
 }
@@ -176,12 +215,12 @@ function applyMusicSessionPacket(packet, source = "sync") {
   sessionAuto = translation.flowOn;
   drumSuggested = translation.drumsOn;
   drumsOn = drumsOn && drumSuggested;
-  sessionPressureTarget = translation.pressureTarget;
+    sessionPressureTarget = translation.pressureTarget;
   lastBassEventCount = 0;
   drumBar = 0;
   syncSessionState();
   updateSessionUi();
-  setText(refs.sessionStatus, `SYNC ${referenceLabel(translation.referenceId)} / STARTで聴く`);
+  setText(refs.sessionStatus, `SYNC ${referenceLabel(translation.referenceId)}${micCueLabel(translation.micFollow)} / STARTで聴く`);
   setText(refs.bassStatus, bassOn ? "Quiet Bass ready" : "bass off");
   setText(refs.drumStatus, drumSuggested ? "DRUMS任意: 押すと参加" : "DRUMSなしでOK");
   return translation;

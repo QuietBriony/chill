@@ -87,6 +87,7 @@ Trio snapshot:
 Music SYNC:
 - Musicの `SYNC` はmetadata-onlyの現在状態共有です。
 - `chill/session.html` は `routing.chill` を読み、Touch / Phrase / Room、BASS、AUTO、必要ならDRUMSの構えだけを合わせます。
+- `performance_state.mic_follow` があれば、HUM/PHRASEはSoft Melody、BREATH/AIRはRoom、CLAP/PULSEはDRUMS任意の構えへ少しだけ寄せます。マイク音声は録音/保存/送信しません。
 - 音は `START` まで始まりません。`BASS`、`DRUMS`、`AUTO`、`PANIC` は人間が押します。
 - chill内の `DRUMS` は drum-floor のsoft pocket adapterです。chillがピアノ/ベース/trioの流れを所有します。
 - drum-floor単独ページやOpenClaw raw candidate生成とは別導線です。

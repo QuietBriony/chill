@@ -4,17 +4,25 @@
 
 This repository is no longer the primary active music runtime.
 
+Current Music Stack role:
+- Quiet piano / trio listening surface and regrowth candidate.
+- Browser-only synthetic felt piano with optional local bass and optional drum-floor soft pocket.
+- Owner of Touch / Phrase / Room, START / PANIC, Flow Director, and local listening-score metadata.
+- Not the central Music rig, not the namima ambient water surface, and not the drum-floor rhythm engine.
+
 Current direction:
 - Experimental / edge generative rig: QuietBriony/Music
 - Public-friendly ambient player: QuietBriony/namima
 - Band groove generator: QuietBriony/drum-floor
 
-This repository is kept as a reference/archive candidate until useful ideas are harvested.
+This repository is kept as a quiet piano / trio regrowth and reference/archive candidate until a human chooses harvest, intentional reactivation, or archive.
 
 - Do not add audio files or samples
 - Do not add dependencies
 - Do not add GitHub Actions
 - Do not use this repo as the main runtime unless reactivated intentionally
+- Do not let PULSE, BASS, or DRUMS turn `chill` into the main rhythm runtime
+- Do not fold `chill` into `Music` without a separate integration decision
 
 # Regrowth candidate
 
@@ -63,6 +71,13 @@ Live preview:
 - GitHub Pages: https://quietbriony.github.io/chill/
 - Quiet Piano Trio session: https://quietbriony.github.io/chill/session.html
 - Pages source: `main` branch, repository root.
+
+Repo entry points:
+- `index.html`: Quiet Piano Radio surface.
+- `session.html`: Quiet Piano Trio surface.
+- `engine.js`: synthetic piano, bass, Flow Director, public runtime contracts, and diagnostics.
+- `session.js`: Music SYNC bridge, trio snapshot, local listening score, and optional drum-floor adapter.
+- `exports/chill-piano-recipe.json`: portable recipe export for later harvest or reference.
 
 Quiet Piano Trio session:
 - `BASS`: elastic quiet roots, fifths, approaches, glides, and ghost notes hosted by `chill`.

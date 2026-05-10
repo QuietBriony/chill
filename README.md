@@ -78,6 +78,7 @@ Repo entry points:
 - `engine.js`: synthetic piano, bass, Flow Director, public runtime contracts, and diagnostics.
 - `session.js`: Music SYNC bridge, trio snapshot, local listening score, and optional drum-floor adapter.
 - `exports/chill-piano-recipe.json`: portable recipe export for later harvest or reference.
+- `docs/listening-score-review.md`: read-only review flow for listening scores and recipe-export confidence.
 
 Quiet Piano Trio session:
 - `BASS`: elastic quiet roots, fifths, approaches, glides, and ghost notes hosted by `chill`.
@@ -110,6 +111,7 @@ Music SYNC:
 Fixed storage keys:
 - `chill:session:v1`
 - `chill:recipe:v1`
+- `chill:listening-score:v1`
 - `chill:lastSeed`
 
 Acceptance gates before intentional reactivation:

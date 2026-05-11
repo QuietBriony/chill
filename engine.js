@@ -946,11 +946,11 @@ Tone.Transport.swing = 0.16;
 Tone.Transport.swingSubdivision = "8n";
 
 const limiter = new Tone.Limiter(-1).toDestination();
-const master = new Tone.Gain(0.78).connect(limiter);
+const master = new Tone.Gain(0.86).connect(limiter);
 
 const pianoRoom = new Tone.Reverb(3.4);
 pianoRoom.wet.value = 0.26;
-const pianoBus = new Tone.Gain(0.66).chain(pianoRoom, master);
+const pianoBus = new Tone.Gain(0.72).chain(pianoRoom, master);
 const pianoDepthFilter = new Tone.Filter(2350, "lowpass");
 const pianoDepthDelay = new Tone.FeedbackDelay({ delayTime: "16n", feedback: 0.1, wet: 0.055 });
 const pianoDepthBus = new Tone.Gain(0.16).chain(pianoDepthFilter, pianoDepthDelay, master);
@@ -1006,7 +1006,7 @@ const bass = new Tone.MonoSynth({
 const sessionBassFilter = new Tone.Filter(380, "lowpass");
 const sessionBassHighpass = new Tone.Filter(42, "highpass");
 const sessionBassGlue = new Tone.Compressor({ threshold: -30, ratio: 2.2, attack: 0.035, release: 0.22 });
-const sessionBassBus = new Tone.Gain(0.74).chain(sessionBassHighpass, sessionBassGlue, master);
+const sessionBassBus = new Tone.Gain(0.8).chain(sessionBassHighpass, sessionBassGlue, master);
 const sessionBass = new Tone.MonoSynth({
   oscillator: { type: "triangle" },
   filter: { type: "lowpass", rolloff: -24 },
@@ -1094,7 +1094,7 @@ function maybeRecoverFromQuiet() {
   if (!runtimeHealth.quiet || performance.now() < runtimeHealth.recoverAt) return;
   runtimeHealth.quiet = false;
   runtimeHealth.lateTicks = 0;
-  master.gain.rampTo(0.82, 0.8);
+  master.gain.rampTo(0.88, 0.8);
   updateUi();
 }
 

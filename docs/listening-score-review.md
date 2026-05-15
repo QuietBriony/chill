@@ -17,6 +17,8 @@ reactivation decision and it is not a Music integration decision.
 
 The score stores local metadata only. It must not store audio, samples,
 microphone input, copied motifs, external analytics, or raw performance capture.
+Music SYNC also stays metadata-only on this path: it can shape the session
+posture, but playback still waits for a human `START`.
 
 ## Review flow
 

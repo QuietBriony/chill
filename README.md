@@ -77,6 +77,12 @@ Live preview:
 - Quiet Piano Trio session: https://quietbriony.github.io/chill/session.html
 - Pages source: `main` branch, repository root.
 
+Related Stack links:
+- Music Core Rig: https://quietbriony.github.io/Music/
+- Hazama FM: https://quietbriony.github.io/Music/fm.html
+- namima: https://quietbriony.github.io/namima/
+- drum-floor: https://quietbriony.github.io/drum-floor/
+
 Repo entry points:
 - `index.html`: Quiet Piano Radio surface.
 - `session.html`: Quiet Piano Trio surface.

@@ -105,6 +105,18 @@ body::before {
   border-color: rgba(245, 222, 178, 0.36);
 }
 
+.stack-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.stack-links .page-link {
+  margin: 0;
+}
+
 .controls,
 .reference-row,
 .runtime-status {

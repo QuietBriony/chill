@@ -36,6 +36,7 @@ microphone input, copied motifs, external analytics, or raw performance capture.
 | `dynamics` | Does loudness stay comfortable? | controlled felt attack, soft decrescendo, no hard jumps | flatness, harsh attacks, loudness creep |
 | `bass` | Does BASS support the piano? | elastic roots, fifths, approaches, and glides stay behind the piano | lead-bass behavior, busy low end, dull root-only movement |
 | `fatigue` | Can this stay on in the background? | long rests, low density, low irritation | repeated motif, too much melody, rhythm becoming the point |
+| `mastering` | Did the browser mastering lift stay quiet enough? | clearer piano without pushing the room forward | harsh attack, loudness creep, background fatigue |
 
 ## Recipe export check
 
@@ -46,6 +47,9 @@ Expected posture:
 
 - `piano-jazz-chill` remains the default quiet room piano identity.
 - `soft-melody-piano` stays behind the main runtime.
+- Runtime recipes are the four `engine.js` references; `midnight-whisper` and
+  `morning-light` in the export are supplemental portable references until a
+  separate task promotes them.
 - Recipe export is portable reference material, not an instruction to fold
   `chill` into `Music`.
 - Any future re-export or script run needs a separate task envelope.

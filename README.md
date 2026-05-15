@@ -55,6 +55,11 @@ Current recipes:
 - `soft-solo-drift` (`Memory Piano`): distant memory piano, rare strange repeats, no aggressive rhythm
 - `soft-melody-piano` (`Soft Melody`): soft piano answers and memory dots, still low-density and behind the main runtime
 
+Runtime recipes are the four IDs above. The export file also carries
+supplemental portable references such as `midnight-whisper` and
+`morning-light`; treat those as harvest/review material until a separate
+task promotes them into `engine.js`.
+
 Button meaning:
 - `PULSE`: optional soft kick / hat / bass floor under the piano. It is off by default and should not become the main feature.
 - `AUTO`: Flow Director. It shapes pressure, rest, decrescendo, and room without suddenly turning the radio into a different track.

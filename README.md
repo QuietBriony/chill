@@ -77,6 +77,11 @@ Live preview:
 - Quiet Piano Trio session: https://quietbriony.github.io/chill/session.html
 - Pages source: `main` branch, repository root.
 
+PWA shell:
+- `index.html` and `session.html` are installable as a standalone app through `manifest.webmanifest`.
+- `sw.js` caches only the local app shell, recipe/review metadata, and icons under the `chill-pwa` cache prefix.
+- Tone.js remains the existing pinned CDN dependency and is cached at runtime after an online load.
+
 Related Stack links:
 - Music Core Rig: https://quietbriony.github.io/Music/
 - Hazama FM: https://quietbriony.github.io/Music/fm.html

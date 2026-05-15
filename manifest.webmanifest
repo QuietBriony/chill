@@ -1,0 +1,56 @@
+{
+  "name": "Chill",
+  "short_name": "Chill",
+  "description": "Quiet synthetic piano radio and trio listening surface.",
+  "start_url": "./session.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#101617",
+  "theme_color": "#101617",
+  "lang": "ja",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quiet Piano Trio",
+      "short_name": "Trio",
+      "description": "Open the Music SYNC trio session",
+      "url": "./session.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Quiet Piano Radio",
+      "short_name": "Radio",
+      "description": "Open the quiet piano radio",
+      "url": "./index.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

@@ -7,7 +7,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <link rel="stylesheet" href="./style.css?v=play-entry" />
+    <meta name="description" content="Chill Quiet Piano Trio: Music SYNC対応の静かなピアノ、ベース、任意ドラム。" />
+    <meta name="theme-color" content="#101617" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Chill" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./style.css?v=pwa-1" />
     <!-- Tone.js CDN (14.7.77 stable, existing dependency only) -->
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
   </head>
@@ -156,7 +162,16 @@
       </div>
     </div>
 
-    <script src="./engine.js?v=20260504-flow-v2"></script>
-  <script type="module" src="./session.js?v=music-mic-sync-1"></script>
+    <script src="./engine.js?v=pwa-1"></script>
+    <script type="module" src="./session.js?v=pwa-1"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch((error) => {
+            console.warn("[Chill] service worker registration failed", error);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

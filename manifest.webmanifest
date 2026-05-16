@@ -1,6 +1,7 @@
 {
   "name": "Chill",
   "short_name": "Chill",
+  "id": "./",
   "description": "Quiet synthetic piano radio and trio listening surface.",
   "start_url": "./session.html",
   "scope": "./",

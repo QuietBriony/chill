@@ -1090,6 +1090,51 @@ function enterQuietMode(reason) {
   updateUi();
 }
 
+function releaseToneVoices(reason = "release") {
+  const now = Tone.now();
+  [
+    pianoBody,
+    pianoBell,
+    pianoHammer,
+    lead,
+    pad,
+    bass,
+    sessionBass,
+    kick,
+    hat,
+    air,
+  ].forEach((voice) => {
+    try {
+      if (typeof voice.releaseAll === "function") voice.releaseAll(now);
+      else if (typeof voice.triggerRelease === "function") voice.triggerRelease(now);
+    } catch (error) {
+      console.warn(`chill ${reason} release failed`, error);
+    }
+  });
+}
+
+function quietForPageLifecycle(reason) {
+  window.clearTimeout(autoTimer);
+  autoTimer = null;
+  try { Tone.Transport.stop(); } catch (error) { console.warn("chill transport stop failed", error); }
+  releaseToneVoices(reason);
+  runtimeHealth.quiet = true;
+  runtimeHealth.recoverAt = performance.now() + 3200;
+  master.gain.rampTo(0.04, 0.25);
+  updateUi();
+}
+
+function installPageLifecycleGuard() {
+  window.addEventListener("pagehide", () => quietForPageLifecycle("pagehide"));
+  window.addEventListener("blur", () => {
+    if (document.visibilityState === "hidden") quietForPageLifecycle("screen lock");
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") quietForPageLifecycle("background");
+  });
+  document.addEventListener("freeze", () => quietForPageLifecycle("freeze"));
+}
+
 function maybeRecoverFromQuiet() {
   if (!runtimeHealth.quiet || performance.now() < runtimeHealth.recoverAt) return;
   runtimeHealth.quiet = false;
@@ -1615,6 +1660,7 @@ function scheduleSessionTick(options = {}) {
 
 function panicSession() {
   Tone.Transport.stop();
+  releaseToneVoices("panic");
   try {
     sessionBass.triggerRelease(Tone.now());
   } catch (error) {
@@ -1855,5 +1901,6 @@ syncControlsFromConfig();
 persistConfig(generator.config);
 applyRecipeTransport(generator.getRecipe(), 0.05);
 installGlobalUnlock();
+installPageLifecycleGuard();
 requestAnimationFrame(draw);
 updateUi();

@@ -599,6 +599,28 @@ refs.panicBtn.onclick = () => {
   updateSessionUi();
 };
 
+function quietSessionForPageLifecycle(reason) {
+  if (drumLoop) drumLoop.stop(0);
+  if (drumAdapter) drumAdapter.panic();
+  window.chillAdapter?.session?.panic?.();
+  drumsOn = false;
+  bassOn = false;
+  lastBassEventCount = 0;
+  setText(refs.sessionStatus, `quiet: ${reason}`);
+  setText(refs.bassStatus, "bass quiet");
+  setText(refs.drumStatus, "drums quiet");
+  updateSessionUi();
+}
+
+window.addEventListener("pagehide", () => quietSessionForPageLifecycle("pagehide"));
+window.addEventListener("blur", () => {
+  if (document.visibilityState === "hidden") quietSessionForPageLifecycle("screen lock");
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") quietSessionForPageLifecycle("background");
+});
+document.addEventListener("freeze", () => quietSessionForPageLifecycle("freeze"));
+
 refs.seedBtn.addEventListener("click", () => {
   window.setTimeout(() => {
     drumBar = 0;

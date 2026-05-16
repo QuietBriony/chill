@@ -81,6 +81,8 @@ PWA shell:
 - `index.html` and `session.html` are installable as a standalone app through `manifest.webmanifest`.
 - `sw.js` caches only the local app shell, recipe/review metadata, and icons under the `chill-pwa` cache prefix.
 - Tone.js remains the existing pinned CDN dependency and is cached at runtime after an online load.
+- Mobile page lifecycle is guarded: screen lock, backgrounding, pagehide, and freeze stop Tone Transport, release voices, and require a human START after return.
+- Static PWA contract check: `node scripts/check-pwa-static.mjs`.
 
 Related Stack links:
 - Music Core Rig: https://quietbriony.github.io/Music/

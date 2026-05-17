@@ -49,9 +49,8 @@ Expected posture:
 
 - `piano-jazz-chill` remains the default quiet room piano identity.
 - `soft-melody-piano` stays behind the main runtime.
-- Runtime recipes are the four `engine.js` references; `midnight-whisper` and
-  `morning-light` in the export are supplemental portable references until a
-  separate task promotes them.
+- All six `engine.js` recipes — including `midnight-whisper` and
+  `morning-light` — are runtime references; the export mirrors that set.
 - Recipe export is portable reference material, not an instruction to fold
   `chill` into `Music`.
 - Any future re-export or script run needs a separate task envelope.

@@ -53,7 +53,7 @@ node scripts/check-pwa-static.mjs
 
 ## Cache buster discipline
 
-`sw.js` の cache version 変数は **`const VERSION`**（現在 `chill-pwa-v2`）。
+`sw.js` の cache version 変数は **`const VERSION`**（現在 `chill-pwa-v3`）。
 local asset は `?v=pwa-N` query を持つ。UI / runtime（`index.html` / `session.html` /
 `style.css` / `engine.js` / `session.js`）を変えたら **3 箇所を同期 bump**:
 

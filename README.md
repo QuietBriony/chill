@@ -54,11 +54,13 @@ Current recipes:
 - `rainy-lofi-room` (`Glass Piano`): transparent add/sus voicing, cool room, reduced air
 - `soft-solo-drift` (`Memory Piano`): distant memory piano, rare strange repeats, no aggressive rhythm
 - `soft-melody-piano` (`Soft Melody`): soft piano answers and memory dots, still low-density and behind the main runtime
+- `midnight-whisper` (`Midnight Whisper`): slow midnight memory chords, very low density with a soft low anchor
+- `morning-light` (`Morning Light`): bright glass chords with a dorian response, a gentle morning-glow feel
 
-Runtime recipes are the four IDs above. The export file also carries
-supplemental portable references such as `midnight-whisper` and
-`morning-light`; treat those as harvest/review material until a separate
-task promotes them into `engine.js`.
+All six IDs above are runtime recipes in `engine.js`, selectable on both
+the radio (`index.html`) and the trio session (`session.html`).
+`exports/chill-piano-recipe.json` carries the same set as a portable
+harvest/review artifact.
 
 Button meaning:
 - `PULSE`: optional soft kick / hat / bass floor under the piano. It is off by default and should not become the main feature.

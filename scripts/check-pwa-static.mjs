@@ -28,16 +28,16 @@ const sessionHtml = text("session.html");
 for (const html of [indexHtml, sessionHtml]) {
   assert.match(html, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(html, /navigator\.serviceWorker\.register\("\.\/sw\.js"\)/);
-  assert.match(html, /style\.css\?v=pwa-3/);
+  assert.match(html, /style\.css\?v=pwa-4/);
 }
-assert.match(indexHtml, /engine\.js\?v=pwa-3/);
-assert.match(sessionHtml, /engine\.js\?v=pwa-3/);
-assert.match(sessionHtml, /session\.js\?v=pwa-3/);
+assert.match(indexHtml, /engine\.js\?v=pwa-4/);
+assert.match(sessionHtml, /engine\.js\?v=pwa-4/);
+assert.match(sessionHtml, /session\.js\?v=pwa-4/);
 
 const sw = text("sw.js");
 assert.match(sw, /const CACHE_PREFIX = "chill-pwa"/);
-assert.match(sw, /const VERSION = `\$\{CACHE_PREFIX\}-v3`/);
-for (const asset of ["style.css?v=pwa-3", "engine.js?v=pwa-3", "session.js?v=pwa-3"]) {
+assert.match(sw, /const VERSION = `\$\{CACHE_PREFIX\}-v4`/);
+for (const asset of ["style.css?v=pwa-4", "engine.js?v=pwa-4", "session.js?v=pwa-4"]) {
   assert.ok(sw.includes(`"${asset}"`), `missing sw precache asset: ${asset}`);
 }
 

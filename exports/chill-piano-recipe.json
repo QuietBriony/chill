@@ -945,7 +945,7 @@
       },
       "transitionRules": {
         "maxDensity": 0.34,
-        "quietOnLateTicks": true
+        "quietOnLateTicks": 3
       }
     },
     {
@@ -1096,7 +1096,7 @@
       },
       "transitionRules": {
         "maxDensity": 0.62,
-        "quietOnLateTicks": true
+        "quietOnLateTicks": 3
       }
     }
   ]

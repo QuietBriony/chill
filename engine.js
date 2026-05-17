@@ -1609,6 +1609,18 @@ const SESSION_BASS_ROUTES = Object.freeze({
     approaches: ["C#2", "F#1", "B1", "G#1"],
     ghosts: ["E2", "B1", "A1", "D2"],
   },
+  "midnight-whisper": {
+    roots: ["D2", "G1", "C2", "A1"],
+    fifths: ["A2", "D2", "G2", "E2"],
+    approaches: ["C#2", "F#1", "B1", "G#1"],
+    ghosts: ["E2", "A1", "B1", "C#2"],
+  },
+  "morning-light": {
+    roots: ["A1", "D2", "G1", "E2"],
+    fifths: ["E2", "A2", "D2", "B2"],
+    approaches: ["G#1", "C#2", "F#1", "D#2"],
+    ghosts: ["B1", "E2", "A1", "F#2"],
+  },
 });
 
 function buildSessionBassEvents(options = {}) {

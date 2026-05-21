@@ -28,18 +28,19 @@ const sessionHtml = text("session.html");
 for (const html of [indexHtml, sessionHtml]) {
   assert.match(html, /rel="manifest" href="\.\/manifest\.webmanifest"/);
   assert.match(html, /navigator\.serviceWorker\.register\("\.\/sw\.js"\)/);
-  assert.match(html, /style\.css\?v=pwa-4/);
+  assert.match(html, /style\.css\?v=pwa-\d+/);
 }
-assert.match(indexHtml, /engine\.js\?v=pwa-4/);
-assert.match(sessionHtml, /engine\.js\?v=pwa-4/);
-assert.match(sessionHtml, /session\.js\?v=pwa-4/);
+assert.match(indexHtml, /engine\.js\?v=pwa-\d+/);
+assert.match(sessionHtml, /engine\.js\?v=pwa-\d+/);
+assert.match(sessionHtml, /session\.js\?v=pwa-\d+/);
 
 const sw = text("sw.js");
 assert.match(sw, /const CACHE_PREFIX = "chill-pwa"/);
-assert.match(sw, /const VERSION = `\$\{CACHE_PREFIX\}-v4`/);
-for (const asset of ["style.css?v=pwa-4", "engine.js?v=pwa-4", "session.js?v=pwa-4"]) {
-  assert.ok(sw.includes(`"${asset}"`), `missing sw precache asset: ${asset}`);
-}
+// Per BL-011 / openclaw precedent: pattern-only, no hardcoded number.
+assert.match(sw, /const VERSION = `\$\{CACHE_PREFIX\}-v\d+`/);
+assert.match(sw, /"style\.css\?v=pwa-\d+"/);
+assert.match(sw, /"engine\.js\?v=pwa-\d+"/);
+assert.match(sw, /"session\.js\?v=pwa-\d+"/);
 
 const precacheBlock = sw.match(/const PRECACHE_URLS = \[([\s\S]*?)\];/);
 assert.ok(precacheBlock, "missing PRECACHE_URLS");

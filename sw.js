@@ -7,7 +7,7 @@
 ========================================================= */
 
 const CACHE_PREFIX = "chill-pwa";
-const VERSION = `${CACHE_PREFIX}-v5`;
+const VERSION = `${CACHE_PREFIX}-v6`;
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const SCOPE_URL = new URL(self.registration.scope);
@@ -16,9 +16,9 @@ const PRECACHE_URLS = [
   "./",
   "index.html",
   "session.html",
-  "style.css?v=pwa-5",
-  "engine.js?v=pwa-5",
-  "session.js?v=pwa-5",
+  "style.css?v=pwa-6",
+  "engine.js?v=pwa-6",
+  "session.js?v=pwa-6",
   "manifest.webmanifest",
   "exports/chill-piano-recipe.json",
   "docs/listening-score-review.md",

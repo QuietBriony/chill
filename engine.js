@@ -684,6 +684,19 @@ function chooseAt(items, seed, tick, salt) {
   return items[Math.min(index, items.length - 1)];
 }
 
+const PROGRESSION_LENGTH = 4;
+
+// Length-4 note pools are authored in chord-progression order (the session
+// bass already walks the same order via barIndex % 4). Locking them to the
+// bar keeps bed / answer / anchor / bass on the same chord each bar; other
+// pool sizes stay seeded color picks.
+function pickLayerNotes(layer, tickIndex, seed) {
+  if (layer.notes.length === PROGRESSION_LENGTH) {
+    return layer.notes[Math.floor(tickIndex / 16) % PROGRESSION_LENGTH];
+  }
+  return chooseAt(layer.notes, seed, tickIndex, `${layer.id}:notes`);
+}
+
 function safeJsonRead(key, fallback) {
   try {
     const raw = window.localStorage.getItem(key);
@@ -983,7 +996,7 @@ class ChillGenerator {
 
   buildEvent(layer, tickIndex, shape) {
     const noteChoice = Array.isArray(layer.notes)
-      ? chooseAt(layer.notes, this.config.seed, tickIndex, `${layer.id}:notes`)
+      ? pickLayerNotes(layer, tickIndex, this.config.seed)
       : undefined;
     const duration = Array.isArray(layer.duration)
       ? chooseAt(layer.duration, this.config.seed, tickIndex, `${layer.id}:duration`)
@@ -1037,10 +1050,12 @@ class ChillGenerator {
     }
 
     if (randomAt(this.config.seed, tickIndex, "pulse-root") < clamp01(rootPattern[step] * (0.06 + shape.energy * 0.08) * shape.flow.bassActivity)) {
+      const route = SESSION_BASS_ROUTES[this.config.referenceId];
+      const pulseRoots = route ? route.roots : ["C2", "A1", "D2", "G1"];
       events.push({
         type: "bass",
         id: "pulse-root",
-        notes: chooseAt(["C2", "A1", "D2", "G1"], this.config.seed, Math.floor(tickIndex / 16), "pulse-root-note"),
+        notes: pulseRoots[Math.floor(tickIndex / 16) % pulseRoots.length],
         duration: "8n",
         velocity: clamp01((0.034 + shape.energy * 0.026) * shape.flow.bassVelocityScale),
         filterHz: 190 + shape.energy * 260,
@@ -1111,12 +1126,18 @@ const master = new Tone.Gain(0.86).connect(limiter);
 const pianoRoom = new Tone.Reverb(3.4);
 pianoRoom.wet.value = 0.26;
 const pianoBus = new Tone.Gain(0.72).chain(pianoRoom, master);
+// PingPong spreads the echo portion of the depth/bloom sends L/R while the
+// dry path stays centered; falls back to mono delay if the Tone build lacks it.
+const makeWideDelay = (options) =>
+  typeof Tone.PingPongDelay === "function"
+    ? new Tone.PingPongDelay(options)
+    : new Tone.FeedbackDelay(options);
 const pianoDepthFilter = new Tone.Filter(2350, "lowpass");
-const pianoDepthDelay = new Tone.FeedbackDelay({ delayTime: "16n", feedback: 0.1, wet: 0.055 });
+const pianoDepthDelay = makeWideDelay({ delayTime: "16n", feedback: 0.1, wet: 0.055 });
 const pianoDepthBus = new Tone.Gain(0.16).chain(pianoDepthFilter, pianoDepthDelay, master);
 pianoBus.connect(pianoDepthBus);
 const pianoBloomFilter = new Tone.Filter(2600, "highpass");
-const pianoBloomDelay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.06, wet: 0.025 });
+const pianoBloomDelay = makeWideDelay({ delayTime: "8n", feedback: 0.06, wet: 0.025 });
 const pianoBloomBus = new Tone.Gain(0.04).chain(pianoBloomFilter, pianoBloomDelay, master);
 pianoBus.connect(pianoBloomBus);
 

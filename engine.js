@@ -1222,6 +1222,7 @@ const runtimeHealth = {
   lastTickAt: 0,
   recoverAt: 0,
   lastScheduleResult: null,
+  resumeOnVisible: false,
 };
 
 const ui = {
@@ -1295,6 +1296,7 @@ function releaseToneVoices(reason = "release") {
 }
 
 function quietForPageLifecycle(reason) {
+  runtimeHealth.resumeOnVisible = runtimeHealth.resumeOnVisible || Tone.Transport.state === "started";
   window.clearTimeout(autoTimer);
   autoTimer = null;
   try { Tone.Transport.stop(); } catch (error) { console.warn("chill transport stop failed", error); }
@@ -1305,13 +1307,39 @@ function quietForPageLifecycle(reason) {
   updateUi();
 }
 
+// The lifecycle stop kills the transport, and the transport drives the loop
+// that runs maybeRecoverFromQuiet — so without an external resume hook,
+// returning to the tab stays silent until a manual START.
+function resumeFromPageLifecycle() {
+  if (!runtimeHealth.resumeOnVisible || document.visibilityState !== "visible") return;
+  runtimeHealth.resumeOnVisible = false;
+  Promise.resolve()
+    .then(() => Tone.start())
+    .then(() => {
+      Tone.Transport.start("+0.1");
+      runtimeHealth.quiet = false;
+      runtimeHealth.lateTicks = 0;
+      runtimeHealth.lastTickAt = 0;
+      master.gain.rampTo(0.88, 0.8);
+      if (autoOn) startAutoDrift();
+      updateUi();
+    })
+    .catch((error) => {
+      runtimeHealth.resumeOnVisible = true;
+      recordRuntimeError("lifecycle resume failed", error);
+    });
+}
+
 function installPageLifecycleGuard() {
   window.addEventListener("pagehide", () => quietForPageLifecycle("pagehide"));
+  window.addEventListener("pageshow", resumeFromPageLifecycle);
   window.addEventListener("blur", () => {
     if (document.visibilityState === "hidden") quietForPageLifecycle("screen lock");
   });
+  window.addEventListener("focus", resumeFromPageLifecycle);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") quietForPageLifecycle("background");
+    else resumeFromPageLifecycle();
   });
   document.addEventListener("freeze", () => quietForPageLifecycle("freeze"));
 }

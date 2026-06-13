@@ -751,6 +751,37 @@ function intentToFaders(intent = {}) {
 
 const FLOW_STATES = Object.freeze(["settle", "breathe", "lift", "decrescendo", "recover"]);
 
+// Long-form weather: over several minutes the room's brightness and space
+// slowly travel through three movements — the chill analog of namima's tide,
+// giving a left-running focus radio somewhere to go instead of looping in
+// place. Driven purely by barIndex (NOT wall-clock), so the deterministic
+// preview contract — same seed + config + tick → byte-identical stream —
+// still holds. Amplitudes are gentle so it colors, never overrides, the recipe.
+const WEATHER_MOVEMENTS = Object.freeze([
+  Object.freeze({ name: "clear",  energy: 0.06, nature: 0.02, density: 0.03 }),
+  Object.freeze({ name: "veiled", energy: -0.05, nature: 0.08, density: -0.04 }),
+  Object.freeze({ name: "deep",   energy: -0.02, nature: 0.05, density: 0.01 }),
+]);
+const WEATHER_BARS_PER_MOVEMENT = 24;
+
+function weatherForBar(barIndex) {
+  const span = WEATHER_BARS_PER_MOVEMENT;
+  const total = span * WEATHER_MOVEMENTS.length;
+  const bar = Math.max(0, Math.floor(Number(barIndex) || 0));
+  const pos = bar % total;
+  const idx = Math.floor(pos / span);
+  const t = (pos % span) / span; // 0..1: continuous morph cur -> next movement
+  const cur = WEATHER_MOVEMENTS[idx];
+  const nxt = WEATHER_MOVEMENTS[(idx + 1) % WEATHER_MOVEMENTS.length];
+  const lerp = (a, b) => a + (b - a) * t;
+  return {
+    name: cur.name,
+    energyDelta: lerp(cur.energy, nxt.energy),
+    natureDelta: lerp(cur.nature, nxt.nature),
+    densityDelta: lerp(cur.density, nxt.density),
+  };
+}
+
 function pressureTargetValue(target) {
   if (target === "safe") return 0.34;
   if (target === "full") return 0.68;
@@ -915,9 +946,10 @@ class ChillGenerator {
       pressureTarget: context.pressureTarget,
     });
     const autoShape = context.autoOn ? this.getAutoVariation(recipe, tickIndex) : null;
-    const density = clamp01(effectiveDensity + (autoShape?.densityDelta ?? 0) + flow.densityDelta);
-    const energy = clamp01(this.config.faderA + (autoShape?.energyDelta ?? 0) + flow.energyDelta);
-    const nature = clamp01(this.config.faderC + (autoShape?.natureDelta ?? 0) + flow.natureDelta);
+    const weather = weatherForBar(Math.floor(tickIndex / 16));
+    const density = clamp01(effectiveDensity + (autoShape?.densityDelta ?? 0) + flow.densityDelta + weather.densityDelta);
+    const energy = clamp01(this.config.faderA + (autoShape?.energyDelta ?? 0) + flow.energyDelta + weather.energyDelta);
+    const nature = clamp01(this.config.faderC + (autoShape?.natureDelta ?? 0) + flow.natureDelta + weather.natureDelta);
 
     recipe.layers.forEach((layer) => {
       if (tickIndex % layer.every !== 0) return;
@@ -1936,6 +1968,7 @@ window.chillRuntime = {
   generator,
   adapter: chillAdapter,
   diagnostics: chillAdapter.diagnostics,
+  weatherForBar,
   STORAGE_KEYS,
 };
 

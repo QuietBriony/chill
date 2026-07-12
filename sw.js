@@ -7,7 +7,7 @@
 ========================================================= */
 
 const CACHE_PREFIX = "chill-pwa";
-const VERSION = `${CACHE_PREFIX}-v8`;
+const VERSION = `${CACHE_PREFIX}-v9`;
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const SCOPE_URL = new URL(self.registration.scope);
